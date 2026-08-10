@@ -1,0 +1,16 @@
+# Core experiment and analysis dependencies
+pandas>=2.2,<3.0
+numpy>=2.1,<3.0
+matplotlib>=3.9,<4.0
+tqdm>=4.66,<5.0
+rank-bm25>=0.2.2,<0.3
+tree-sitter>=0.23,<0.26
+tree-sitter-python>=0.23,<0.26
+tree-sitter-cpp>=0.23,<0.24
+
+# Official model-provider clients
+openai>=1.30,<3.0
+google-genai>=1.0,<2.0
+
+# Local CodeLlama is optional and additionally requires compatible versions
+# of torch, transformers, and accelerate for the selected checkpoint.

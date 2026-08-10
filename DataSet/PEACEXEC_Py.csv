@@ -1,0 +1,2507 @@
+repo_id,owner,reponame,target_file,target_class,target_func,desc,sha,prompt,testcases,repo_path,venv_path,test_cmd,test_case_func,slow_code_header,input,Slow_Code,input__IO_pass_rate_(%),input__time(us),input__cpu_instructions,input__memory_usage_mb
+psf_black,psf,black,src/black/strings.py,Null,lines_with_leading_tabs_expanded,Null,f00093672628d212b8965a8993cee8bedf5fe9b8,Fix catastrophic performance in lines_with_leading_tabs_expanded(),"    def test_lines_with_leading_tabs_expanded(self) -> None:
+        # See CVE-2024-21503. Mostly test that this completes in a reasonable
+        # time.
+        payload = ""	"" * 10_000
+        assert lines_with_leading_tabs_expanded(payload) == [payload]
+        tab = "" "" * 8
+        assert lines_with_leading_tabs_expanded(""	x"") == [f""{tab}x""]
+        assert lines_with_leading_tabs_expanded(""		x"") == [f""{tab}{tab}x""]
+        assert lines_with_leading_tabs_expanded(""	x
+  y"") == [f""{tab}x"", ""  y""]",black,psf_black,pytest -s tests/test_black.py::BlackTestCase::test_lines_with_leading_tabs_expanded,"def test_lines_with_leading_tabs_expanded(self) ->None:
+    payload = '\t' * 10000
+    assert lines_with_leading_tabs_expanded(payload) == [payload]
+    tab = ' ' * 8
+    assert lines_with_leading_tabs_expanded('\tx') == [f'{tab}x']
+    assert lines_with_leading_tabs_expanded('\t\tx') == [f'{tab}{tab}x']
+    assert lines_with_leading_tabs_expanded('\tx\n  y') == [f'{tab}x', '  y']",def lines_with_leading_tabs_expanded(s: str) ->List[str]:,"def lines_with_leading_tabs_expanded(s: str) ->List[str]:
+    """"""
+    Splits string into lines and expands only leading tabs (following the normal
+    Python rules)
+    """"""
+    lines = []
+    for line in s.splitlines():
+        stripped_line = line.lstrip()
+        if not stripped_line or stripped_line == line:
+            lines.append(line)
+        else:
+            prefix_length = len(line) - len(stripped_line)
+            prefix = line[:prefix_length].expandtabs()
+            lines.append(prefix + stripped_line)
+    if s.endswith('\n'):
+        lines.append('')
+    return lines","def lines_with_leading_tabs_expanded(s: str) ->List[str]:
+    """"""
+    Splits string into lines and expands only leading tabs (following the normal
+    Python rules)
+    """"""
+    lines = []
+    for line in s.splitlines():
+        stripped_line = line.lstrip()
+        if not stripped_line or stripped_line == line:
+            lines.append(line)
+        else:
+            prefix_length = len(line) - len(stripped_line)
+            prefix = line[:prefix_length].expandtabs()
+            lines.append(prefix + stripped_line)
+    if s.endswith('\n'):
+        lines.append('')
+    return lines",1,357.67,934510,0.0
+aws_serverless-application-model,aws,serverless-application-model,samtranslator/utils/py27hash_fix.py,Py27Keys,_get_key_idx,Null,dfb1307e7e7b9059bb73c9c96f4e4d9c64f0f6af,Py27dict deepcopy performance (#2331)* Implement __deepcopy__ to improve performance* Cache py27 hash for Py27UniStr to improve performance,"    def test_py27_hash(self):        a = Py27UniStr(""abcdef"")        self.assertEqual(a._get_py27_hash(), 484452592760221083)        # do it twice since _get_py27_hash caches the hash        self.assertEqual(a._get_py27_hash(), 484452592760221083)",serverless-application-model,aws_serverless-application-model,pytest --no-cov -s tests/utils/test_py27hash_fix.py::TestPy27UniStr::test_py27_hash,"def test_py27_hash(self):
+    a = Py27UniStr('abcdef')
+    self.assertEqual(a._get_py27_hash(), 484452592760221083)
+    self.assertEqual(a._get_py27_hash(), 484452592760221083)","def _get_key_idx(self, k):","def _get_key_idx(self, k):
+    """"""Gets insert location for k""""""
+    if isinstance(k, Py27UniStr):
+        h = k._get_py27_hash()
+    else:
+        h = ctypes.c_size_t(Hash.hash(k)).value
+    i = h & self.mask
+    if i not in self.keyorder or self.keyorder[i] == k:
+        return i
+    freeslot = None
+    if i in self.keyorder and self.keyorder[i] is self.DUMMY:
+        freeslot = i
+    walker = i
+    perturb = h
+    while i in self.keyorder and self.keyorder[i] != k:
+        walker = (walker << 2) + walker + perturb + 1
+        i = walker & self.mask
+        if i not in self.keyorder:
+            return i if freeslot is None else freeslot
+        if self.keyorder[i] == k:
+            return i
+        if freeslot is None and self.keyorder[i] is self.DUMMY:
+            freeslot = i
+        perturb >>= PERTURB_SHIFT
+    return i","def _get_key_idx(self, k):
+    """"""Gets insert location for k""""""
+    if isinstance(k, Py27UniStr):
+        h = k._get_py27_hash()
+    else:
+        h = ctypes.c_size_t(Hash.hash(k)).value
+    i = h & self.mask
+    if i not in self.keyorder or self.keyorder[i] == k:
+        return i
+    freeslot = None
+    if i in self.keyorder and self.keyorder[i] is self.DUMMY:
+        freeslot = i
+    walker = i
+    perturb = h
+    while i in self.keyorder and self.keyorder[i] != k:
+        walker = (walker << 2) + walker + perturb + 1
+        i = walker & self.mask
+        if i not in self.keyorder:
+            return i if freeslot is None else freeslot
+        if self.keyorder[i] == k:
+            return i
+        if freeslot is None and self.keyorder[i] is self.DUMMY:
+            freeslot = i
+        perturb >>= PERTURB_SHIFT
+    return i",1,371.67,846914,0.085937
+jopohl_urh,jopohl,urh,src/urh/ainterpretation/AutoInterpretation.py,Null,merge_plateau_lengths,Null,d300ba5c335c4df6138279b9d8c937956bd2bc7c,Improve Auto Interpretation Performance (#814)* cythonize merge_plateaus* add a threshold for plateau count to prevent running forever,"    def test_merge_plateau_lengths(self):        self.assertEqual(AutoInterpretation.merge_plateau_lengths([]), [])        self.assertEqual(AutoInterpretation.merge_plateau_lengths([42]), [42])        self.assertEqual(AutoInterpretation.merge_plateau_lengths([100, 100, 100]), [100, 100, 100])        self.assertEqual(AutoInterpretation.merge_plateau_lengths([100, 49, 1, 50, 100]), [100, 100, 100])        self.assertEqual(AutoInterpretation.merge_plateau_lengths([100, 48, 2, 50, 100]), [100, 100, 100])        self.assertEqual(AutoInterpretation.merge_plateau_lengths([100, 100, 67, 1, 10, 1, 21]), [100, 100, 100])        self.assertEqual(AutoInterpretation.merge_plateau_lengths([100, 100, 67, 1, 10, 1, 21, 100, 50, 1, 49]),                         [100, 100, 100, 100, 100])        self.assertEqual(self.__run_merge([100, 49, 1, 50, 100]), [100, 100, 100])        self.assertEqual(self.__run_merge([100, 48, 2, 50, 100]), [100, 100, 100])        self.assertEqual(self.__run_merge([100, 100, 67, 1, 10, 1, 21]), [100, 100, 100])        self.assertEqual(self.__run_merge([100, 100, 67, 1, 10, 1, 21, 100, 50, 1, 49]), [100, 100, 100, 100, 100])",urh,jopohl_urh,pytest -s tests/auto_interpretation/test_bit_length_detection.py::TestAutoInterpretation::test_merge_plateau_lengths,"def test_merge_plateau_lengths(self):
+    self.assertEqual(AutoInterpretation.merge_plateau_lengths([]), [])
+    self.assertEqual(AutoInterpretation.merge_plateau_lengths([42]), [42])
+    self.assertEqual(AutoInterpretation.merge_plateau_lengths([100, 100,100]), [100, 100, 100])
+    self.assertEqual(self.__run_merge([100, 49, 1, 50, 100]), [100, 100, 100])
+    self.assertEqual(self.__run_merge([100, 48, 2, 50, 100]), [100, 100, 100])
+    self.assertEqual(self.__run_merge([100, 100, 67, 1, 10, 1, 21]), [100,100, 100])
+    self.assertEqual(self.__run_merge([100, 100, 67, 1, 10, 1, 21, 100, 50,1, 49]), [100, 100, 100, 100, 100])","def merge_plateau_lengths(plateau_lengths, tolerance=None) ->list:","def merge_plateau_lengths(plateau_lengths, tolerance=None) ->list:
+    if tolerance is None:
+        tolerance = estimate_tolerance_from_plateau_lengths(plateau_lengths)
+    if tolerance == 0 or tolerance is None:
+        return plateau_lengths
+    return c_auto_interpretation.merge_plateaus(plateau_lengths, tolerance,max_count=10000)","def merge_plateau_lengths(plateau_lengths, tolerance=None) ->list:
+    if tolerance is None:
+        tolerance = estimate_tolerance_from_plateau_lengths(plateau_lengths)
+    if tolerance == 0 or tolerance is None:
+        return plateau_lengths
+    return c_auto_interpretation.merge_plateaus(plateau_lengths, tolerance,max_count=10000)",1,996.33,2100202,0.0
+patroni_patroni,patroni,patroni,patroni/postgresql/rewind.py,Rewind,ensure_checkpoint_after_promote,Null,17e523b175d0bb515c0202d52ab11a04faf12d92,Optimize checkpoint after promote (#2114)1. Avoid doing CHECKPOINT if `pg_control` is already updated.2. Explicitly call ensure_checkpoint_after_promote() right after the bootstrap finished successfully.,"    def test_ensure_checkpoint_after_promote(self, mock_get_master_timeline, mock_checkpoint, mock_controldata):        mock_controldata.return_value = {""Latest checkpoint's TimeLineID"": 1}        mock_get_master_timeline.return_value = 1        self.r.ensure_checkpoint_after_promote(Mock())        self.r.reset_state()        mock_controldata.return_value = {""Latest checkpoint's TimeLineID"": 1}        mock_checkpoint.side_effect = Exception        mock_get_master_timeline.return_value = 2        mock_checkpoint.return_value = 0        self.r.ensure_checkpoint_after_promote(Mock())        self.r.ensure_checkpoint_after_promote(Mock())        self.r.reset_state()        mock_controldata.side_effect = TypeError        self.r.ensure_checkpoint_after_promote(Mock())        mock_checkpoint.side_effect = Exception        self.r.ensure_checkpoint_after_promote(Mock())",patroni,patroni_patroni,pytest -s tests/test_rewind.py::TestRewind::test_ensure_checkpoint_after_promote,"@patch('patroni.postgresql.rewind.Thread', MockThread)
+@patch.object(Postgresql, 'controldata')
+@patch.object(Postgresql, 'checkpoint')
+@patch.object(Postgresql, 'get_master_timeline')
+def test_ensure_checkpoint_after_promote(self, mock_get_master_timeline,mock_checkpoint, mock_controldata):
+    mock_controldata.return_value = {""Latest checkpoint's TimeLineID"": 1}
+    mock_get_master_timeline.return_value = 1
+    self.r.ensure_checkpoint_after_promote(Mock())
+    self.r.reset_state()
+    mock_get_master_timeline.return_value = 2
+    mock_checkpoint.return_value = 0
+    self.r.ensure_checkpoint_after_promote(Mock())
+    self.r.ensure_checkpoint_after_promote(Mock())
+    self.r.reset_state()
+    mock_controldata.side_effect = TypeError
+    mock_checkpoint.side_effect = Exception
+    self.r.ensure_checkpoint_after_promote(Mock())","def ensure_checkpoint_after_promote(self, wakeup):","def ensure_checkpoint_after_promote(self, wakeup):
+    """"""After promote issue a CHECKPOINT from a new thread and asynchronously check the result.
+        In case if CHECKPOINT failed, just check that timeline in pg_control was updated.""""""
+    if self._state == REWIND_STATUS.INITIAL and self._postgresql.is_leader():
+        with self._checkpoint_task_lock:
+            if self._checkpoint_task:
+                with self._checkpoint_task:
+                    if self._checkpoint_task.result:
+                        self._state = REWIND_STATUS.CHECKPOINT
+            elif self._postgresql.get_master_timeline() == self._postgresql.pg_control_timeline():
+                self._state = REWIND_STATUS.CHECKPOINT
+            else:
+                self._checkpoint_task = CriticalTask()
+                Thread(target=self.__checkpoint, args=(self._checkpoint_task, wakeup)).start()","def ensure_checkpoint_after_promote(self, wakeup):
+    """"""After promote issue a CHECKPOINT from a new thread and asynchronously check the result.
+        In case if CHECKPOINT failed, just check that timeline in pg_control was updated.""""""
+    if self._state == REWIND_STATUS.INITIAL and self._postgresql.is_leader():
+        with self._checkpoint_task_lock:
+            if self._checkpoint_task:
+                with self._checkpoint_task:
+                    if self._checkpoint_task.result:
+                        self._state = REWIND_STATUS.CHECKPOINT
+            elif self._postgresql.get_master_timeline() == self._postgresql.pg_control_timeline():
+                self._state = REWIND_STATUS.CHECKPOINT
+            else:
+                self._checkpoint_task = CriticalTask()
+                Thread(target=self.__checkpoint, args=(self._checkpoint_task, wakeup)).start()",1,2464.0,8400213,0.773438
+librosa_librosa,librosa,librosa,librosa/core/spectrum.py,Null,magphase,Null,5fdc3b388e863b37fec8a1bf19e216d9096f16a8,Speed up magphase (#1504)* Speed up `magphase`* Set real and imaginary components separately* Use `dtype` parameter to `empty_like`,"def test_magphase_zero():    D = np.zeros((128, 128), dtype=np.complex64)    S, P = librosa.magphase(D)    assert S.dtype is np.dtype(""float32"")    assert P.dtype is np.dtype(""complex64"")    assert np.allclose(S, 0)    assert np.allclose(P, 1+0j)def test_magphase_denormalized():    D = 1.0e-42j * np.ones((128, 128), dtype=np.complex64)    S, P = librosa.magphase(D)    assert S.dtype is np.dtype(""float32"")    assert P.dtype is np.dtype(""complex64"")    assert np.allclose(S, 1.0e-42)    assert np.allclose(P, 0+1j)def test_magphase_real():    D = np.array([[-1.0, -0.0], [0.0, 1.0]], dtype=np.float64)    S, P = librosa.magphase(D)    assert S.dtype is np.dtype(""float64"")    assert P.dtype is np.dtype(""complex128"")    assert np.allclose(S, np.array([[1.0, 0.0], [0.0, 1.0]]))    assert np.allclose(        [            [P[0, 0], P[0, 1] ** 2],  # negative zero can have phase +1 or -1            [P[1, 0], P[1, 1]],        ],        np.array([[-1+0j, 1+0j], [1+0j, 1+0j]])    )",librosa,librosa_librosa,python -m pytest -s tests/test_core.py::test_magphase_zero,"def test_magphase_zero():
+    D = np.zeros((128, 128), dtype=np.complex64)
+    S, P = librosa.magphase(D)
+    assert S.dtype is np.dtype('float32')
+    assert P.dtype is np.dtype('complex64')
+    assert np.allclose(S, 0)
+    assert np.allclose(P, 1 + 0.0j)","@deprecate_positional_args
+def magphase(D, *, power=1):","@deprecate_positional_args
+def magphase(D, *, power=1):
+    """"""Separate a complex-valued spectrogram D into its magnitude (S)
+    and phase (P) components, so that ``D = S * P``.
+    Parameters
+    ----------
+    D : np.ndarray [shape=(..., d, t), dtype=complex]
+        complex-valued spectrogram
+    power : float > 0
+        Exponent for the magnitude spectrogram,
+        e.g., 1 for energy, 2 for power, etc.
+    Returns
+    -------
+    D_mag : np.ndarray [shape=(..., d, t), dtype=real]
+        magnitude of ``D``, raised to ``power``
+    D_phase : np.ndarray [shape=(..., d, t), dtype=complex]
+        ``exp(1.j * phi)`` where ``phi`` is the phase of ``D``
+    Examples
+    --------
+    >>> y, sr = librosa.load(librosa.ex('trumpet'))
+    >>> D = librosa.stft(y)
+    >>> magnitude, phase = librosa.magphase(D)
+    >>> magnitude
+    array([[5.395e-03, 3.332e-03, ..., 9.862e-07, 1.201e-05],
+           [3.244e-03, 2.690e-03, ..., 9.536e-07, 1.201e-05],
+           ...,
+           [7.523e-05, 3.722e-05, ..., 1.188e-04, 1.031e-03],
+           [7.640e-05, 3.944e-05, ..., 5.180e-04, 1.346e-03]],
+          dtype=float32)
+    >>> phase
+    array([[ 1.   +0.000e+00j,  1.   +0.000e+00j, ...,
+            -1.   -8.742e-08j, -1.   -8.742e-08j],
+           [-1.   -8.742e-08j, -0.775-6.317e-01j, ...,
+            -0.885-4.648e-01j,  0.472-8.815e-01j],
+           ...,
+           [ 1.   -4.342e-12j,  0.028-9.996e-01j, ...,
+            -0.222-9.751e-01j, -0.75 -6.610e-01j],
+           [-1.   -8.742e-08j, -1.   -8.742e-08j, ...,
+             1.   +0.000e+00j,  1.   +0.000e+00j]], dtype=complex64)
+    Or get the phase angle (in radians)
+    >>> np.angle(phase)
+    array([[ 0.000e+00,  0.000e+00, ..., -3.142e+00, -3.142e+00],
+           [-3.142e+00, -2.458e+00, ..., -2.658e+00, -1.079e+00],
+           ...,
+           [-4.342e-12, -1.543e+00, ..., -1.794e+00, -2.419e+00],
+           [-3.142e+00, -3.142e+00, ...,  0.000e+00,  0.000e+00]],
+          dtype=float32)
+    """"""
+    mag = np.abs(D)
+    zeros_to_ones = mag == 0
+    mag_nonzero = mag + zeros_to_ones
+    phase = np.empty_like(D, dtype=util.dtype_r2c(D.dtype))
+    phase.real = D.real / mag_nonzero + zeros_to_ones
+    phase.imag = D.imag / mag_nonzero
+    mag **= power
+    return mag, phase","@deprecate_positional_args
+def magphase(D, *, power=1):
+    """"""Separate a complex-valued spectrogram D into its magnitude (S)
+    and phase (P) components, so that ``D = S * P``.
+    Parameters
+    ----------
+    D : np.ndarray [shape=(..., d, t), dtype=complex]
+        complex-valued spectrogram
+    power : float > 0
+        Exponent for the magnitude spectrogram,
+        e.g., 1 for energy, 2 for power, etc.
+    Returns
+    -------
+    D_mag : np.ndarray [shape=(..., d, t), dtype=real]
+        magnitude of ``D``, raised to ``power``
+    D_phase : np.ndarray [shape=(..., d, t), dtype=complex]
+        ``exp(1.j * phi)`` where ``phi`` is the phase of ``D``
+    Examples
+    --------
+    >>> y, sr = librosa.load(librosa.ex('trumpet'))
+    >>> D = librosa.stft(y)
+    >>> magnitude, phase = librosa.magphase(D)
+    >>> magnitude
+    array([[5.395e-03, 3.332e-03, ..., 9.862e-07, 1.201e-05],
+           [3.244e-03, 2.690e-03, ..., 9.536e-07, 1.201e-05],
+           ...,
+           [7.523e-05, 3.722e-05, ..., 1.188e-04, 1.031e-03],
+           [7.640e-05, 3.944e-05, ..., 5.180e-04, 1.346e-03]],
+          dtype=float32)
+    >>> phase
+    array([[ 1.   +0.000e+00j,  1.   +0.000e+00j, ...,
+            -1.   -8.742e-08j, -1.   -8.742e-08j],
+           [-1.   -8.742e-08j, -0.775-6.317e-01j, ...,
+            -0.885-4.648e-01j,  0.472-8.815e-01j],
+           ...,
+           [ 1.   -4.342e-12j,  0.028-9.996e-01j, ...,
+            -0.222-9.751e-01j, -0.75 -6.610e-01j],
+           [-1.   -8.742e-08j, -1.   -8.742e-08j, ...,
+             1.   +0.000e+00j,  1.   +0.000e+00j]], dtype=complex64)
+    Or get the phase angle (in radians)
+    >>> np.angle(phase)
+    array([[ 0.000e+00,  0.000e+00, ..., -3.142e+00, -3.142e+00],
+           [-3.142e+00, -2.458e+00, ..., -2.658e+00, -1.079e+00],
+           ...,
+           [-4.342e-12, -1.543e+00, ..., -1.794e+00, -2.419e+00],
+           [-3.142e+00, -3.142e+00, ...,  0.000e+00,  0.000e+00]],
+          dtype=float32)
+    """"""
+    mag = np.abs(D)
+    zeros_to_ones = mag == 0
+    mag_nonzero = mag + zeros_to_ones
+    phase = np.empty_like(D, dtype=util.dtype_r2c(D.dtype))
+    phase.real = D.real / mag_nonzero + zeros_to_ones
+    phase.imag = D.imag / mag_nonzero
+    mag **= power
+    return mag, phase",1,1279.33,3843055,0.591146
+cleanlab_cleanlab,cleanlab,cleanlab,cleanlab/internal/util.py,Null,value_counts,Null,c13f32a2a6c1d6f3166d760b60f805c94d9f54fe,Optimize value_counts function for performance improvement with missing classes (#1073)Co-authored-by: Elías Snorrason <eliassno@gmail.com>,"def test_magphase_zero():    D = np.zeros((128, 128), dtype=np.complex64)    S, P = librosa.magphase(D)    assert S.dtype is np.dtype(""float32"")    assert P.dtype is np.dtype(""complex64"")    assert np.allclose(S, 0)    assert np.allclose(P, 1+0j)def test_magphase_denormalized():    D = 1.0e-42j * np.ones((128, 128), dtype=np.complex64)    S, P = librosa.magphase(D)    assert S.dtype is np.dtype(""float32"")    assert P.dtype is np.dtype(""complex64"")    assert np.allclose(S, 1.0e-42)    assert np.allclose(P, 0+1j)def test_magphase_real():    D = np.array([[-1.0, -0.0], [0.0, 1.0]], dtype=np.float64)    S, P = librosa.magphase(D)    assert S.dtype is np.dtype(""float64"")    assert P.dtype is np.dtype(""complex128"")    assert np.allclose(S, np.array([[1.0, 0.0], [0.0, 1.0]]))    assert np.allclose(        [            [P[0, 0], P[0, 1] ** 2],  # negative zero can have phase +1 or -1            [P[1, 0], P[1, 1]],        ],        np.array([[-1+0j, 1+0j], [1+0j, 1+0j]])    )",cleanlab,cleanlab_cleanlab,pytest -s tests/test_util.py,"# coding: utf-8
+from collections import namedtuple
+
+from cleanlab.internal import util
+import numpy as np
+import pytest
+
+from cleanlab.internal.label_quality_utils import get_normalized_entropy
+from cleanlab.internal.multilabel_utils import int2onehot, onehot2int
+from cleanlab.internal.util import num_unique_classes, format_labels, get_missing_classes
+from cleanlab.internal.validation import assert_valid_class_labels
+
+
+noise_matrix = np.array([[1.0, 0.0, 0.2], [0.0, 0.7, 0.2], [0.0, 0.3, 0.6]])
+
+noise_matrix_2 = np.array(
+    [
+        [1.0, 0.3],
+        [0.0, 0.7],
+    ]
+)
+
+joint_matrix = np.array([[0.1, 0.0, 0.1], [0.1, 0.1, 0.1], [0.2, 0.1, 0.2]])
+
+joint_matrix_2 = np.array(
+    [
+        [0.2, 0.3],
+        [0.4, 0.1],
+    ]
+)
+
+single_element = np.array([1])
+
+
+def test_print_inm():
+    for m in [noise_matrix, noise_matrix_2, single_element]:
+        util.print_inverse_noise_matrix(m, round_places=3)
+
+
+def test_print_joint():
+    for m in [joint_matrix, joint_matrix_2, single_element]:
+        util.print_joint_matrix(m, round_places=3)
+
+
+def test_print_square():
+    for m in [noise_matrix, noise_matrix_2, single_element]:
+        util.print_square_matrix(noise_matrix, round_places=3)
+
+
+def test_print_noise_matrix():
+    for m in [noise_matrix, noise_matrix_2, single_element]:
+        util.print_noise_matrix(noise_matrix, round_places=3)
+
+
+def test_pu_f1():
+    s = [1, 1, 1, 0, 0, 0]
+    p = [1, 1, 1, 0, 0, 0]
+    assert abs(util.estimate_pu_f1(s, p) - 1) < 1e-4
+
+
+def test_value_counts_str():
+    r = util.value_counts([""a"", ""b"", ""a""])
+    assert all(np.array([2, 1]) - r < 1e-4)
+
+
+TestCase = namedtuple(""TestCase"", [""labels"", ""id""])
+
+value_counts_missing_classes_test_cases = [
+    TestCase([0, 1, 0, 2], ""integers""),
+    TestCase([""a"", ""b"", ""a"", ""c""], ""strings""),
+    TestCase([[0], [0, 1], [2]], ""multilabel_integers""),
+    TestCase([[""c""], [""a"", ""b""], [""a""]], ""multilabel_strings""),
+]
+
+
+@pytest.mark.parametrize(
+    ""test_case"",
+    value_counts_missing_classes_test_cases,
+    ids=lambda x: str(x.id),
+)
+def test_value_counts_fill_missing_classes(test_case):
+    labels = test_case.labels
+    is_multi_label = isinstance(labels[0], list)
+    r = util.value_counts_fill_missing_classes(labels, num_classes=4, multi_label=is_multi_label)
+    assert np.array_equal(r, [2, 1, 1, 0])
+
+
+def test_pu_remove_noise():
+    nm = np.array(
+        [
+            [0.9, 0.0, 0.0],
+            [0.0, 0.7, 0.4],
+            [0.1, 0.3, 0.6],
+        ]
+    )
+    r = util.remove_noise_from_class(nm, 0)
+    assert np.all(r - nm < 1e-4)
+
+
+def test_round_preserving_sum():
+    vec = np.array([1.1] * 10)
+    ints = util.round_preserving_sum(vec)
+    # Make sure one of ints is now 2 to preserve sum of 11
+    assert np.any(ints == 2)
+    assert sum(ints) == 11
+
+
+def test_one_hot():
+    num_classes = 4
+    labels = [[0], [0, 1], [0, 1], [2], [0, 2, 3]]
+    assert onehot2int(int2onehot(labels, K=num_classes)) == labels
+
+
+def test_num_unique():
+    labels = [[0], [0, 1], [0, 1], [2], [0, 2, 3]]
+    assert num_unique_classes(labels) == 4
+
+
+def test_missing_classes():
+    labels = [0, 1]  # class 2 is missing
+    pred_probs = np.array([[0.8, 0.1, 0.1], [0.4, 0.5, 0.1]])
+    assert get_missing_classes(labels, pred_probs=pred_probs) == [2]
+
+
+def test_round_preserving_row_totals():
+    mat = np.array(
+        [
+            [1.7, 1.8, 1.5],
+            [1.1, 1.4, 1.5],
+            [1.3, 1.3, 1.4],
+        ]
+    )
+    mat_int = util.round_preserving_row_totals(mat)
+    # Check that row sums are preserved
+    assert np.all(mat_int.sum(axis=1) == mat.sum(axis=1))
+
+
+def test_confusion_matrix():
+    true = [0, 1, 1, 2, 2, 2]
+    pred = [0, 0, 1, 1, 1, 2]
+    cmat = util.confusion_matrix(true, pred)
+    assert np.shape(cmat) == (3, 3)
+    assert cmat[0][0] == 1
+    assert cmat[1][1] == 1
+    assert cmat[2][2] == 1
+    assert cmat[1][0] == 1
+    assert cmat[2][1] == 2
+    assert cmat[0][1] == 0
+    assert cmat[0][2] == 0
+    assert cmat[2][0] == 0
+    assert cmat[0][1] == 0
+
+
+def test_confusion_matrix_nonconsecutive():
+    true = [-1, -1, -1, 1]
+    pred = [1, 1, -1, 1]
+    cmat = util.confusion_matrix(true, pred)
+    assert np.shape(cmat) == (2, 2)
+    assert cmat[0][0] == 1
+    assert cmat[0][1] == 2
+    assert cmat[1][0] == 0
+    assert cmat[1][1] == 1
+
+
+def test_format_labels():
+    # test 1D labels
+    str_labels = np.array([""b"", ""b"", ""a"", ""c"", ""a""])
+    labels, label_map = format_labels(str_labels)
+    assert all(labels == np.array([1, 1, 0, 2, 0]))
+    assert label_map[0] == ""a""
+    assert label_map[1] == ""b""
+    assert label_map[2] == ""c""
+    assert_valid_class_labels(labels)
+
+
+def test_normalized_entropy():
+    """"""Check that normalized entropy is well well-behaved and in [0, 1].""""""
+    # test tiny numbers
+    for dtype in [np.float16, np.float32, np.float64]:
+        info = np.finfo(dtype)
+        # some NumPy versions have bugs, therefore we provide a fallback
+        # (fallback is the value of the smalles datatype float16)
+        smallest_normal = getattr(info, ""smallest_normal"", 6.104e-05)
+        smallest_subnormal = getattr(info, ""smallest_subnormal"", 6e-08)
+        for val in [info.eps, smallest_normal, smallest_subnormal, 0]:
+            entropy = get_normalized_entropy(np.array([[1.0, val]], dtype=dtype))
+            assert 0.0 <= entropy <= 1.0
+    # test multiple _assert_valid_inputs
+    entropy = get_normalized_entropy(np.array([[0.0, 1.0], [0.5, 0.5]]))
+    assert all((0.0 <= entropy) & (entropy <= 1.0))
+
+    # raise errors for wrong probabilities.
+    with pytest.raises(ValueError):
+        get_normalized_entropy(np.array([[-1.0, 0.5]]))  # negative
+        get_normalized_entropy(np.array([[2.0, 0.5]]))  # larger 1
+
+
+def test_force_two_dimensions():
+    # Test with 2D array
+    X = np.zeros((5, 5))
+    X_reshaped = util.force_two_dimensions(X)
+    assert X_reshaped.shape == (5, 5), ""The shape of 2D array should remain unchanged.""
+
+    # Test with 4D array
+    X = np.zeros((5, 5, 5, 5))
+    X_reshaped = util.force_two_dimensions(X)
+    assert X_reshaped.shape == (
+        5,
+        125,
+    ), ""The shape of 4D array should be flattened to two dimensions.""
+
+    # Test with None input
+    assert util.force_two_dimensions(None) is None, ""None input should return None.""
+","def value_counts(x, *, num_classes: Optional[int]=None, multi_label=False ) ->np.ndarray:","def value_counts(x, *, num_classes: Optional[int]=None, multi_label=False ) ->np.ndarray:
+    """"""Returns an np.ndarray of shape (K, 1), with the
+    value counts for every unique item in the labels list/array,
+    where K is the number of unique entries in labels.
+    Works for both single-labeled and multi-labeled data.
+    Parameters
+    ----------
+    x : list or np.ndarray (one dimensional)
+        A list of discrete objects, like lists or strings, for
+        example, class labels 'y' when training a classifier.
+        e.g. [""dog"",""dog"",""cat""] or [1,2,0,1,1,0,2]
+    num_classes : int (default: None)
+        Setting this fills the value counts for missing classes with zeros.
+        For example, if x = [0, 0, 1, 1, 3] then setting ``num_classes=5`` returns
+        [2, 2, 0, 1, 0] whereas setting ``num_classes=None`` would return [2, 2, 1]. This assumes
+        your labels come from the set [0, 1,... num_classes=1] even if some classes are missing.
+    multi_label : bool, optional
+      If ``True``, labels should be an iterable (e.g. list) of iterables, containing a
+      list of labels for each example, instead of just a single label.
+      Assumes all classes in pred_probs.shape[1] are represented in labels.
+      The multi-label setting supports classification tasks where an example has 1 or more labels.
+      Example of a multi-labeled `labels` input: ``[[0,1], [1], [0,2], [0,1,2], [0], [1], ...]``.
+      The major difference in how this is calibrated versus single-label is that
+      the total number of errors considered is based on the number of labels,
+      not the number of examples. So, the calibrated `confident_joint` will sum
+      to the number of total labels.""""""
+    if multi_label:
+        x = [z for lst in x for z in lst]
+    unique_classes, counts = np.unique(x, return_counts=True)
+    if num_classes is None or num_classes == len(unique_classes):
+        return counts
+    labels_are_integers = np.issubdtype(np.array(x).dtype, np.integer)
+    if labels_are_integers and num_classes <= np.max(unique_classes):
+        raise ValueError(f'Required: num_classes > max(x), but {num_classes} <= {np.max(x)}.')
+    total_counts = np.zeros(num_classes, dtype=int)
+    count_ids = unique_classes if labels_are_integers else slice(len(unique_classes))
+    total_counts[count_ids] = counts
+    return total_counts","def value_counts(x, *, num_classes: Optional[int]=None, multi_label=False ) ->np.ndarray:
+    """"""Returns an np.ndarray of shape (K, 1), with the
+    value counts for every unique item in the labels list/array,
+    where K is the number of unique entries in labels.
+    Works for both single-labeled and multi-labeled data.
+    Parameters
+    ----------
+    x : list or np.ndarray (one dimensional)
+        A list of discrete objects, like lists or strings, for
+        example, class labels 'y' when training a classifier.
+        e.g. [""dog"",""dog"",""cat""] or [1,2,0,1,1,0,2]
+    num_classes : int (default: None)
+        Setting this fills the value counts for missing classes with zeros.
+        For example, if x = [0, 0, 1, 1, 3] then setting ``num_classes=5`` returns
+        [2, 2, 0, 1, 0] whereas setting ``num_classes=None`` would return [2, 2, 1]. This assumes
+        your labels come from the set [0, 1,... num_classes=1] even if some classes are missing.
+    multi_label : bool, optional
+      If ``True``, labels should be an iterable (e.g. list) of iterables, containing a
+      list of labels for each example, instead of just a single label.
+      Assumes all classes in pred_probs.shape[1] are represented in labels.
+      The multi-label setting supports classification tasks where an example has 1 or more labels.
+      Example of a multi-labeled `labels` input: ``[[0,1], [1], [0,2], [0,1,2], [0], [1], ...]``.
+      The major difference in how this is calibrated versus single-label is that
+      the total number of errors considered is based on the number of labels,
+      not the number of examples. So, the calibrated `confident_joint` will sum
+      to the number of total labels.""""""
+    if multi_label:
+        x = [z for lst in x for z in lst]
+    unique_classes, counts = np.unique(x, return_counts=True)
+    if num_classes is None or num_classes == len(unique_classes):
+        return counts
+    labels_are_integers = np.issubdtype(np.array(x).dtype, np.integer)
+    if labels_are_integers and num_classes <= np.max(unique_classes):
+        raise ValueError(f'Required: num_classes > max(x), but {num_classes} <= {np.max(x)}.')
+    total_counts = np.zeros(num_classes, dtype=int)
+    count_ids = unique_classes if labels_are_integers else slice(len(unique_classes))
+    total_counts[count_ids] = counts
+    return total_counts",1,566.67,1197343,0.0
+cleanlab_cleanlab,cleanlab,cleanlab,cleanlab/internal/multilabel_utils.py,Null,onehot2int,Null,09fed320f12952d56d16187776cc9ab399a52144,Optimize onehot2int for performance (#1107),"def test_public_label_quality_scores(labels, pred_probs):    formatted_labels = onehot2int(labels)    assert isinstance(formatted_labels, list)    scores1 = ml_classification.get_label_quality_scores(formatted_labels, pred_probs)    assert len(scores1) == len(labels)    assert (scores1 >= 0).all() and (scores1 <= 1).all()    scores2 = ml_classification.get_label_quality_scores(        formatted_labels, pred_probs, method=""confidence_weighted_entropy""    )    assert not np.isclose(scores1, scores2).all()    scores3 = ml_classification.get_label_quality_scores(        formatted_labels, pred_probs, adjust_pred_probs=True    )    assert not np.isclose(scores1, scores3).all()    scores4 = ml_classification.get_label_quality_scores(        formatted_labels,        pred_probs,        method=""normalized_margin"",        adjust_pred_probs=True,        aggregator_kwargs={""method"": ""exponential_moving_average""},    )    assert not np.isclose(scores1, scores4).all()    scores5 = ml_classification.get_label_quality_scores(        formatted_labels,        pred_probs,        method=""normalized_margin"",        adjust_pred_probs=True,        aggregator_kwargs={""method"": ""softmin""},    )    assert not np.isclose(scores4, scores5).all()    scores6 = ml_classification.get_label_quality_scores(        formatted_labels,        pred_probs,        method=""normalized_margin"",        adjust_pred_probs=True,        aggregator_kwargs={""method"": ""softmin"", ""temperature"": 0.002},    )    assert not np.isclose(scores5, scores6).all()    scores7 = ml_classification.get_label_quality_scores(        formatted_labels,        pred_probs,        method=""normalized_margin"",        adjust_pred_probs=True,        aggregator_kwargs={""method"": np.min},    )    assert np.isclose(scores6, scores7, rtol=1e-3).all()    with pytest.raises(ValueError) as e:        _ = ml_classification.get_label_quality_scores(            formatted_labels, pred_probs, method=""badchoice""        )        assert ""Invalid method name: badchoice"" in str(e.value)    with pytest.raises(ValueError) as e:        _ = ml_classification.get_label_quality_scores(            formatted_labels, pred_probs, aggregator_kwargs={""method"": ""invalid""}        )        assert ""Invalid aggregation method specified: 'invalid'"" in str(e.value)",cleanlab,cleanlab_cleanlab,pytest -s tests/test_multilabel_classification.py,"# Copyright (C) 2017-2023  Cleanlab Inc.
+# This file is part of cleanlab.
+#
+# cleanlab is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# cleanlab is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with cleanlab.  If not, see <https://www.gnu.org/licenses/>.
+
+
+import itertools
+import typing
+
+import numpy as np
+import pytest
+import sklearn
+from hypothesis import given, settings
+from hypothesis import strategies as st
+from hypothesis.extra.numpy import arrays
+from hypothesis.strategies import composite
+from sklearn.linear_model import LogisticRegression
+from sklearn.multiclass import OneVsRestClassifier
+
+from cleanlab import multilabel_classification as ml_classification
+from cleanlab.internal import multilabel_scorer as ml_scorer
+from cleanlab.internal.multilabel_utils import get_onehot_num_classes, onehot2int, stack_complement
+from cleanlab.multilabel_classification import filter
+from cleanlab.multilabel_classification.dataset import (
+    common_multilabel_issues,
+    multilabel_health_summary,
+    overall_multilabel_health_score,
+    rank_classes_by_multilabel_quality,
+)
+from cleanlab.multilabel_classification.rank import get_label_quality_scores_per_class
+
+
+@pytest.fixture
+def labels():
+    return np.array(
+        [
+            [1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1],
+            [1, 1, 0],
+            [1, 0, 1],
+            [0, 1, 1],
+            [1, 1, 1],
+            [0, 0, 0],
+            [1, 0, 1],
+            [0, 1, 0],
+        ]
+    )
+
+
+@pytest.fixture
+def pred_probs_gold(labels):
+    pred_probs = np.array(
+        [
+            [0.203, 0.465, 0.612],
+            [0.802, 0.596, 0.43],
+            [0.776, 0.649, 0.391],
+            [0.201, 0.439, 0.633],
+            [0.203, 0.443, 0.584],
+            [0.814, 0.572, 0.332],
+            [0.201, 0.388, 0.544],
+            [0.778, 0.646, 0.392],
+            [0.796, 0.611, 0.387],
+            [0.199, 0.381, 0.58],
+        ]
+    )
+    assert pred_probs.shape == labels.shape
+    return pred_probs
+
+
+@pytest.fixture
+def pred_probs():
+    return np.array(
+        [
+            [0.9, 0.1, 0.2],
+            [0.5, 0.6, 0.4],
+            [0.75, 0.80, 0.85],
+            [0.9, 0.85, 0.2],
+            [0.9, 0.1, 0.85],
+            [0.5, 0.6, 0.85],
+            [0.9, 0.85, 0.85],
+            [0.8, 0.4, 0.2],
+            [0.9, 0.1, 0.85],
+            [0.15, 0.95, 0.05],
+        ]
+    )
+
+
+@pytest.fixture
+def pred_probs_multilabel():
+    return np.array(
+        [
+            [0.9, 0.1, 0.0, 0.4, 0.1],
+            [0.7, 0.8, 0.2, 0.3, 0.1],
+            [0.9, 0.8, 0.4, 0.2, 0.1],
+            [0.1, 0.1, 0.8, 0.3, 0.1],
+            [0.4, 0.5, 0.1, 0.1, 0.1],
+            [0.1, 0.1, 0.2, 0.1, 0.1],
+            [0.8, 0.1, 0.2, 0.1, 0.1],
+        ]
+    )
+
+
+@pytest.fixture
+def labels_multilabel():
+    return [[0], [0, 1], [0, 1], [2], [0, 2, 3], [], []]
+
+
+@pytest.fixture
+def data_multilabel(num_classes=5):
+    labels = []
+    pred_probs = []
+    for i in range(0, 100):
+        q = [0.1] * num_classes
+        pos = i % num_classes
+        labels.append([pos])
+        if i > 90:
+            pos = (pos + 2) % num_classes
+        q[pos] = 0.9
+        pred_probs.append(q)
+    return labels, np.array(pred_probs)
+
+
+@pytest.fixture
+def cv():
+    return sklearn.model_selection.StratifiedKFold(
+        n_splits=2,
+        shuffle=True,
+        random_state=42,
+    )
+
+
+@pytest.fixture
+def dummy_features(labels):
+    np.random.seed(42)
+    return np.random.rand(labels.shape[0], 2)
+
+
+def test_public_label_quality_scores(labels, pred_probs):
+    formatted_labels = onehot2int(labels)
+    assert isinstance(formatted_labels, list)
+    scores1 = ml_classification.get_label_quality_scores(formatted_labels, pred_probs)
+    assert len(scores1) == len(labels)
+    assert (scores1 >= 0).all() and (scores1 <= 1).all()
+    scores2 = ml_classification.get_label_quality_scores(
+        formatted_labels, pred_probs, method=""confidence_weighted_entropy""
+    )
+    assert not np.isclose(scores1, scores2).all()
+    scores3 = ml_classification.get_label_quality_scores(
+        formatted_labels, pred_probs, adjust_pred_probs=True
+    )
+    assert not np.isclose(scores1, scores3).all()
+    scores4 = ml_classification.get_label_quality_scores(
+        formatted_labels,
+        pred_probs,
+        method=""normalized_margin"",
+        adjust_pred_probs=True,
+        aggregator_kwargs={""method"": ""exponential_moving_average""},
+    )
+    assert not np.isclose(scores1, scores4).all()
+    scores5 = ml_classification.get_label_quality_scores(
+        formatted_labels,
+        pred_probs,
+        method=""normalized_margin"",
+        adjust_pred_probs=True,
+        aggregator_kwargs={""method"": ""softmin""},
+    )
+    assert not np.isclose(scores4, scores5).all()
+    scores6 = ml_classification.get_label_quality_scores(
+        formatted_labels,
+        pred_probs,
+        method=""normalized_margin"",
+        adjust_pred_probs=True,
+        aggregator_kwargs={""method"": ""softmin"", ""temperature"": 0.002},
+    )
+    assert not np.isclose(scores5, scores6).all()
+    scores7 = ml_classification.get_label_quality_scores(
+        formatted_labels,
+        pred_probs,
+        method=""normalized_margin"",
+        adjust_pred_probs=True,
+        aggregator_kwargs={""method"": np.min},
+    )
+    assert np.isclose(scores6, scores7, rtol=1e-3).all()
+
+    with pytest.raises(ValueError) as e:
+        _ = ml_classification.get_label_quality_scores(
+            formatted_labels, pred_probs, method=""badchoice""
+        )
+        assert ""Invalid method name: badchoice"" in str(e.value)
+
+    with pytest.raises(ValueError) as e:
+        _ = ml_classification.get_label_quality_scores(
+            formatted_labels, pred_probs, aggregator_kwargs={""method"": ""invalid""}
+        )
+        assert ""Invalid aggregation method specified: 'invalid'"" in str(e.value)
+
+
+class TestAggregator:
+    """"""Test the Aggregator class.""""""
+
+    @pytest.fixture
+    def base_scores(self):
+        return np.array([[0.6, 0.3, 0.7, 0.1, 0.9]])
+
+    @pytest.mark.parametrize(
+        ""method"",
+        [np.min, np.max, np.mean, np.median, ""exponential_moving_average"", ""softmin""],
+        ids=lambda x: x.__name__ if callable(x) else str(x),
+    )
+    def test_aggregator_callable(self, method):
+        aggregator = ml_scorer.Aggregator(method=method)
+        assert callable(aggregator.method), ""Aggregator should store a callable method""
+        assert callable(aggregator), ""Aggregator should be callable""
+
+    @pytest.mark.parametrize(
+        ""method,expected_score"",
+        [
+            (np.min, 0.1),
+            (np.max, 0.9),
+            (np.mean, 0.52),
+            (np.median, 0.6),
+            (""exponential_moving_average"", 0.436),
+            (""softmin"", 0.128),
+        ],
+        ids=[""min"", ""max"", ""mean"", ""median"", ""exponential_moving_average"", ""softmin""],
+    )
+    def test_aggregator_score(self, base_scores, method, expected_score):
+        aggregator = ml_scorer.Aggregator(method=method)
+        scores = aggregator(base_scores)
+        assert np.isclose(scores, np.array([expected_score]), rtol=1e-3).all()
+        assert scores.shape == (1,)
+
+    def test_invalid_method(self):
+        with pytest.raises(ValueError) as e:
+            _ = ml_scorer.Aggregator(method=""invalid_method"")
+            assert ""Invalid aggregation method specified: 'invalid_method'"" in str(
+                e.value
+            ), ""String constructor has limited options""
+
+        with pytest.raises(TypeError) as e:
+            _ = ml_scorer.Aggregator(method=1)
+            assert ""Expected callable method"" in str(e.value), ""Non-callable methods are not valid""
+
+    def test_invalid_score(self, base_scores):
+        aggregator = ml_scorer.Aggregator(method=np.min)
+        with pytest.raises(ValueError) as e:
+            _ = aggregator(base_scores[0])
+            assert ""Expected 2D array"" in str(e.value), ""Aggregator expects 2D array""
+
+
+class TestMultilabelScorer:
+    """"""Test the MultilabelScorer class.""""""
+
+    @pytest.fixture
+    def docs_labels(self):
+        return np.array([[0, 1, 0], [1, 0, 1]])
+
+    @pytest.fixture
+    def docs_pred_probs(self):
+        return np.array([[0.1, 0.9, 0.7], [0.4, 0.1, 0.6]])
+
+    @pytest.fixture
+    def default_scorer(self):
+        return ml_scorer.MultilabelScorer()
+
+    @pytest.mark.parametrize(
+        ""base_scorer"", [scorer for scorer in ml_scorer.ClassLabelScorer], ids=lambda x: x.name
+    )
+    @pytest.mark.parametrize(
+        ""aggregator"", [np.min, np.max, np.mean, ""exponential_moving_average"", ""softmin""]
+    )
+    @pytest.mark.parametrize(""strict"", [True, False], ids=[""strict"", """"])
+    def test_call(self, base_scorer, aggregator, strict, labels, pred_probs):
+        scorer = ml_scorer.MultilabelScorer(base_scorer, aggregator, strict=strict)
+        assert callable(scorer)
+
+        test_scores = scorer(labels, pred_probs)
+        assert isinstance(test_scores, np.ndarray)
+        assert test_scores.shape == (labels.shape[0],)
+
+        # Test base_scorer_kwargs
+        base_scorer_kwargs = {""adjust_pred_probs"": True}
+        if scorer.base_scorer is not ml_scorer.ClassLabelScorer.CONFIDENCE_WEIGHTED_ENTROPY:
+            test_scores = scorer(labels, pred_probs, base_scorer_kwargs=base_scorer_kwargs)
+            assert isinstance(test_scores, np.ndarray)
+            assert test_scores.shape == (labels.shape[0],)
+        else:
+            with pytest.raises(ValueError) as e:
+                scorer(labels, pred_probs, base_scorer_kwargs=base_scorer_kwargs)
+                assert ""adjust_pred_probs is not currently supported for"" in str(e)
+
+    @pytest.mark.parametrize(
+        ""base_scorer"", [scorer for scorer in ml_scorer.ClassLabelScorer], ids=lambda x: x.name
+    )
+    def test_aggregate_kwargs(self, base_scorer):
+        """"""Make sure the instatiated aggregator kwargs can be overridden.
+        I.e. switching from a forgetting-factor 1.0 to 0.5.
+        """"""
+        class_label_quality_scores = np.array([[0.9, 0.9, 0.3], [0.4, 0.9, 0.6]])
+        aggregator = ml_scorer.Aggregator(ml_scorer.exponential_moving_average, alpha=1.0)
+        scorer = ml_scorer.MultilabelScorer(
+            base_scorer=base_scorer,
+            aggregator=aggregator,
+        )
+        scores = scorer.aggregate(class_label_quality_scores)
+        assert np.allclose(scores, np.array([0.3, 0.4]))
+        # Use different alpha, should change scores
+        new_scores = scorer.aggregate(class_label_quality_scores, alpha=0.0)
+        assert np.allclose(new_scores, np.array([0.9, 0.9]))
+
+    def test_get_class_label_quality_scores(self, default_scorer, docs_labels, docs_pred_probs):
+        """"""Test the get_class_label_quality_scores method.""""""
+        class_label_quality_scores = default_scorer.get_class_label_quality_scores(
+            docs_labels, docs_pred_probs
+        )
+        assert np.allclose(class_label_quality_scores, np.array([[0.9, 0.9, 0.3], [0.4, 0.9, 0.6]]))
+
+
+@pytest.mark.parametrize(
+    ""method"", [""self_confidence"", ""normalized_margin"", ""confidence_weighted_entropy""]
+)
+def test_class_label_scorer_from_str(method):
+    for m in (method, method.upper()):
+        scorer = ml_scorer.ClassLabelScorer.from_str(m)
+        assert callable(scorer)
+        with pytest.raises(ValueError):
+            ml_scorer.ClassLabelScorer.from_str(m.replace(""_"", ""-""))
+
+
+@pytest.fixture
+def scorer():
+    return ml_scorer.MultilabelScorer(
+        base_scorer=ml_scorer.ClassLabelScorer.SELF_CONFIDENCE,
+        aggregator=np.min,
+    )
+
+
+def test_is_multilabel(labels):
+    assert ml_scorer._is_multilabel(labels)
+    assert not ml_scorer._is_multilabel(labels[:, 0])
+
+
+@pytest.mark.parametrize(""class_names"", [None, [""Apple"", ""Cat"", ""Dog"", ""Peach"", ""Bird""]])
+def test_common_multilabel_issues(class_names, pred_probs_multilabel, labels_multilabel):
+    df = common_multilabel_issues(
+        labels=labels_multilabel, pred_probs=pred_probs_multilabel, class_names=class_names
+    )
+    expected_issue_probabilities = [
+        0.14285714285714285,
+        0.14285714285714285,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+    ]
+    assert len(df) == 10
+    assert np.isclose(np.array(expected_issue_probabilities), df[""Issue Probability""]).all()
+    if class_names:
+        expected_res = [
+            ""Apple"",
+            ""Dog"",
+            ""Apple"",
+            ""Cat"",
+            ""Cat"",
+            ""Dog"",
+            ""Peach"",
+            ""Peach"",
+            ""Bird"",
+            ""Bird"",
+        ]
+        assert list(df[""Class Name""]) == expected_res
+    else:
+        assert ""Class Name"" not in df.columns
+
+
+def test_multilabel_find_label_issues(data_multilabel):
+    labels, pred_probs = data_multilabel
+    issues = filter.find_label_issues(
+        labels=labels, pred_probs=pred_probs, return_indices_ranked_by=""self_confidence""
+    )
+    issues_lm = filter.find_label_issues(
+        labels, pred_probs, low_memory=True, return_indices_ranked_by=""self_confidence""
+    )
+    intersection = len(list(set(issues).intersection(set(issues_lm))))
+    union = len(set(issues)) + len(set(issues_lm)) - intersection
+    assert float(intersection) / union > 0.95
+    # Check with return_indices_ranked_by=None
+    issues_mask = filter.find_label_issues(labels=labels, pred_probs=pred_probs)
+    issues_lm_mask = filter.find_label_issues(labels, pred_probs, low_memory=True)
+    issues_from_mask = np.where(issues_mask)[0]
+    issues_lm_from_mask = np.where(issues_lm_mask)[0]
+    intersection = len(list(set(issues_from_mask).intersection(set(issues_lm_from_mask))))
+    union = len(set(issues_from_mask)) + len(set(issues_lm_from_mask)) - intersection
+    assert float(intersection) / union > 0.95
+    # Check with low_memory=True, unused parameters rank_by_kwargs and n_jobs
+    rank_by_kwargs = {""adjust_pred_probs"": None}
+    issues_lm2 = filter.find_label_issues(
+        labels,
+        pred_probs,
+        low_memory=True,
+        return_indices_ranked_by=""self_confidence"",
+        rank_by_kwargs=rank_by_kwargs,
+        n_jobs=1,
+    )
+    np.testing.assert_array_equal(issues_lm2, issues_lm)
+
+
+@pytest.mark.parametrize(""min_examples_per_class"", [10, 90])
+def test_multilabel_min_examples_per_class(data_multilabel, min_examples_per_class):
+    labels, pred_probs = data_multilabel
+    issues = filter.find_label_issues(
+        labels=labels, pred_probs=pred_probs, min_examples_per_class=min_examples_per_class
+    )
+    if min_examples_per_class == 10:
+        assert sum(issues) == 9
+    else:
+        assert sum(issues) == 0
+
+
+@pytest.mark.parametrize(""num_to_remove_per_class"", [None, [1, 1, 0, 0, 2], [1, 1, 0, 0, 1]])
+def test_multilabel_num_to_remove_per_class(data_multilabel, num_to_remove_per_class):
+    labels, pred_probs = data_multilabel
+
+    issues = filter.find_label_issues(
+        labels=labels, pred_probs=pred_probs, num_to_remove_per_class=num_to_remove_per_class
+    )
+    num_issues = sum(issues)
+    if num_to_remove_per_class is None:
+        assert num_issues == 9
+    else:
+        assert num_issues == sum(num_to_remove_per_class)
+
+
+@pytest.mark.parametrize(""class_names"", [None, [""Apple"", ""Cat"", ""Dog"", ""Peach"", ""Bird""]])
+def test_rank_classes_by_multilabel_quality(pred_probs_multilabel, labels_multilabel, class_names):
+    df_ranked = rank_classes_by_multilabel_quality(
+        pred_probs=pred_probs_multilabel, labels=labels_multilabel, class_names=class_names
+    )
+    expected_Label_Issues = [1, 0, 0, 0, 0]
+
+    expected_Label_Noise = [0.14285714285714285, 0.0, 0.0, 0.0, 0.0]
+
+    expected_Label_Quality_Score = [0.8571428571428572, 1.0, 1.0, 1.0, 1.0]
+
+    expected_Inverse_Label_Issues = [0, 1, 0, 0, 0]
+
+    expected_Inverse_Label_Noise = [0.0, 0.14285714285714285, 0.0, 0.0, 0.0]
+    assert list(df_ranked[""Label Issues""]) == expected_Label_Issues
+
+    assert np.isclose(np.array(expected_Label_Noise), df_ranked[""Label Noise""]).all()
+    assert np.isclose(
+        np.array(expected_Label_Quality_Score), df_ranked[""Label Quality Score""]
+    ).all()
+    assert list(df_ranked[""Inverse Label Issues""]) == expected_Inverse_Label_Issues
+    assert np.isclose(
+        np.array(expected_Inverse_Label_Noise), df_ranked[""Inverse Label Noise""]
+    ).all()
+    if class_names:
+        expected_res = [
+            ""Dog"",
+            ""Apple"",
+            ""Cat"",
+            ""Peach"",
+            ""Bird"",
+        ]
+        assert list(df_ranked[""Class Name""]) == expected_res
+    else:
+        assert ""Class Name"" not in df_ranked.columns
+
+
+def test_overall_multilabel_health_score(data_multilabel):
+    labels, pred_probs = data_multilabel
+    overall_label_health_score = overall_multilabel_health_score(
+        pred_probs=pred_probs, labels=labels
+    )
+    assert np.isclose(overall_label_health_score, 0.91)
+
+
+def test_get_class_label_quality_scores():
+    pred_probs = np.array(
+        [
+            [0.9, 0.1, 0.0, 0.4, 0.1],
+            [0.7, 0.8, 0.2, 0.3, 0.1],
+            [0.9, 0.8, 0.4, 0.2, 0.1],
+            [0.1, 0.1, 0.8, 0.3, 0.1],
+            [0.4, 0.5, 0.1, 0.1, 0.1],
+            [0.1, 0.1, 0.2, 0.1, 0.1],
+            [0.8, 0.1, 0.2, 0.1, 0.1],
+        ]
+    )
+    labels = [[0], [0, 1], [0, 1], [2], [0, 2, 3], [], []]
+    scores = get_label_quality_scores_per_class(pred_probs=pred_probs, labels=labels)
+    expected_res = [
+        [0.9, 0.9, 1.0, 0.6, 0.9],
+        [0.7, 0.8, 0.8, 0.7, 0.9],
+        [0.9, 0.8, 0.6, 0.8, 0.9],
+        [0.9, 0.9, 0.8, 0.7, 0.9],
+        [0.4, 0.5, 0.1, 0.1, 0.9],
+        [0.9, 0.9, 0.8, 0.9, 0.9],
+        [0.2, 0.9, 0.8, 0.9, 0.9],
+    ]
+    assert np.isclose(scores, np.array(expected_res)).all()
+
+
+def test_health_summary_multilabel(pred_probs_multilabel, labels_multilabel):
+    health_summary_multilabel = multilabel_health_summary(
+        pred_probs=pred_probs_multilabel, labels=labels_multilabel
+    )
+    expected_keys = [
+        ""classes_by_multilabel_quality"",
+        ""common_multilabel_issues"",
+        ""overall_multilabel_health_score"",
+    ]
+    assert sorted(health_summary_multilabel.keys()) == expected_keys
+
+
+@pytest.mark.parametrize(
+    ""input"",
+    [
+        [[0], [1, 2], [0, 2]],
+        [[""a"", ""b""], [""b""]],
+        np.array([[[0, 1], [0, 1]], [[1, 1], [0, 0]]]),
+        1,
+    ],
+    ids=[""lists of ids"", ""lists of strings"", ""3d array"", ""scalar""],
+)
+def test_is_multilabel_is_false(input):
+    assert not ml_scorer._is_multilabel(input)
+
+
+def test_stack_complement():
+    # Toy example
+    pred_probs_class = np.array([0.1, 0.9, 0.3, 0.8])
+    pred_probs_extended = stack_complement(pred_probs_class)
+    pred_probs_expected = np.array(
+        [
+            [0.9, 0.1],
+            [0.1, 0.9],
+            [0.7, 0.3],
+            [0.2, 0.8],
+        ]
+    )
+    assert np.isclose(pred_probs_extended, pred_probs_expected).all()
+
+    # Check preservation of probabilities
+    pred_probs_class = np.random.rand(100)
+    pred_probs_extended = stack_complement(pred_probs_class)
+    assert np.sum(pred_probs_extended, axis=1).all() == 1
+
+
+@pytest.mark.parametrize(
+    ""pred_probs_test"",
+    (None, ""pred_probs""),
+    ids=[""Without probabilities"", ""With probabilities""],
+)
+def test_get_onehot_num_classes(labels, pred_probs_test, request):
+    pred_probs_test = (
+        request.getfixturevalue(pred_probs_test)
+        if isinstance(pred_probs_test, str)
+        else pred_probs_test
+    )
+    labels_list = [np.nonzero(x)[0].tolist() for x in labels]
+    _, num_classes = get_onehot_num_classes(labels_list, pred_probs_test)
+    assert num_classes == 3
+
+
+def test_get_label_quality_scores_output(labels, pred_probs, scorer):
+    # Check that the function returns a dictionary with the correct keys.
+    scores = ml_scorer.get_label_quality_scores(labels, pred_probs, method=scorer)
+    assert isinstance(scores, np.ndarray)
+    assert scores.shape == (labels.shape[0],)
+    assert np.all(scores >= 0) and np.all(scores <= 1)
+    assert np.all(np.isfinite(scores))
+
+
+@pytest.mark.parametrize(
+    ""given_labels,expected"",
+    [
+        (
+            ""labels"",
+            np.full((3, 2), 0.5),
+        ),
+        (np.array([[0, 1], [0, 0], [1, 1]]), np.array([[2 / 3, 1 / 3], [1 / 3, 2 / 3]])),
+        (np.array([[0, 1], [0, 0], [0, 1], [0, 1]]), np.array([[4 / 4, 0 / 4], [1 / 4, 3 / 4]])),
+        (
+            np.array([[0, 1, 0, 0, 0, 0, 0, 0, 0]]),
+            np.array([[1, 0] if i != 1 else [0, 1] for i in range(9)]),
+        ),
+    ],
+    ids=[
+        ""default"",
+        ""Missing class assignment configuration"",
+        ""Missing class"",
+        ""Handle more than 8 classes"",
+    ],
+)
+def test_multilabel_py(given_labels, expected, request):
+    given_labels = (
+        request.getfixturevalue(given_labels) if isinstance(given_labels, str) else given_labels
+    )
+    py = ml_scorer.multilabel_py(given_labels)
+    assert isinstance(py, np.ndarray)
+    assert py.shape == (given_labels.shape[1], 2)
+    assert np.isclose(py, expected).all()
+
+
+@pytest.mark.parametrize(""K"", [2, 3, 4], ids=[""K=2"", ""K=3"", ""K=4""])
+def test_get_split_generator(cv, K):
+    all_configurations = np.array(list(itertools.product([0, 1], repeat=K)))
+    given_labels = np.repeat(all_configurations, 2, axis=0)
+
+    split_generator = ml_scorer._get_split_generator(given_labels, cv)
+    assert isinstance(split_generator, typing.Generator)
+
+    train, test = next(split_generator)
+    for split in (train, test):
+        assert isinstance(split, np.ndarray)
+        assert np.isin(split, np.arange(given_labels.shape[0])).all()
+
+    # Test that the label distribution is relatively equal among the splits.
+    train_labels, test_labels = given_labels[train], given_labels[test]
+    _, train_counts = np.unique(train_labels, axis=0, return_counts=True)
+    _, test_counts = np.unique(test_labels, axis=0, return_counts=True)
+    # cv.get_n_splits() is 2, so we expect 1/2 of the labels in each split.
+    assert np.all(train_counts == 1)
+    assert np.all(test_counts == 1)
+
+
+# Test split_generator with rare/missing multilabel configurations
+@pytest.mark.parametrize(""K"", [2, 3, 4], ids=[""K=2"", ""K=3"", ""K=4""])
+def test_get_split_generator_rare_configurations(cv, K):
+    all_configurations = np.array(list(itertools.product([0, 1], repeat=K)))
+    given_labels = np.repeat(all_configurations, 2, axis=0)
+
+    # Remove one configuration
+    given_labels = given_labels[~np.all(given_labels == all_configurations[0], axis=1)]
+
+    split_generator = ml_scorer._get_split_generator(given_labels, cv)
+    train, test = next(split_generator)
+    train_labels, test_labels = given_labels[train], given_labels[test]
+
+    # Test that the label distribution is relatively equal among the splits.
+    _, train_counts = np.unique(train_labels, axis=0, return_counts=True)
+    _, test_counts = np.unique(test_labels, axis=0, return_counts=True)
+    # cv.get_n_splits() is 2, so we expect 1/2 of the labels in each split.
+    assert np.all(train_counts == 1)
+    assert np.all(test_counts == 1)
+    assert len(train_counts) == len(test_counts) == len(all_configurations) - 1
+
+    # Remove one instance from labels
+    given_labels = given_labels[1:, :]
+
+    split_generator = ml_scorer._get_split_generator(given_labels, cv)
+    train, test = next(split_generator)
+    train_labels, test_labels = given_labels[train], given_labels[test]
+
+    # Test that the label distribution is relatively equal among the splits.
+    _, train_counts = np.unique(train_labels, axis=0, return_counts=True)
+    _, test_counts = np.unique(test_labels, axis=0, return_counts=True)
+    # cv.get_n_splits() is 2, so we expect 1/2 of the labels in each split,
+    # except for the class with one fewer instances.
+    assert len(train_counts) != len(test_counts)
+
+
+def test_get_cross_validated_multilabel_pred_probs(dummy_features, labels, cv, pred_probs_gold):
+    clf = OneVsRestClassifier(LogisticRegression(random_state=0))
+    pred_probs = ml_scorer.get_cross_validated_multilabel_pred_probs(
+        dummy_features,
+        labels,
+        clf=clf,
+        cv=cv,
+    )
+    assert isinstance(pred_probs, np.ndarray)
+    assert pred_probs.shape == labels.shape
+    assert np.all(pred_probs >= 0) and np.all(pred_probs <= 1)
+    assert np.all(np.isfinite(pred_probs))
+
+    # Gold master test - Ensure output is consistent
+    assert dummy_features.shape == (10, 2)
+    assert np.allclose(pred_probs, pred_probs_gold, atol=5e-4)
+
+
+class TestExponentialMovingAverage:
+    """"""Test the ml_scorer.expontential_moving_average function.""""""
+
+    @pytest.mark.parametrize(""alpha"", [0.5, None])
+    def test_valid_alpha(self, alpha):
+        # Test valid alpha values
+        for x, expected_ema in zip(
+            [
+                np.ones(5).reshape(1, -1),
+                np.array([[0.1, 0.2, 0.3]]),
+                np.array([x / 10 for x in range(1, 7)]).reshape(2, 3),
+            ],
+            [1, 0.175, np.array([0.175, 0.475])],
+        ):
+            ema = ml_scorer.exponential_moving_average(x, alpha=alpha)
+            assert np.allclose(ema, expected_ema, atol=1e-4)
+
+    @pytest.mark.parametrize(
+        ""alpha,expected_ema"",
+        [[0, 0.3], [1, 0.1]],
+        ids=[""alpha=0"", ""alpha=1""],
+    )
+    def test_alpha_boundary(self, alpha, expected_ema):
+        # alpha = 0(1) should return the largest(smallest) value
+        X = np.array([[0.1, 0.2, 0.3]])
+        ema = ml_scorer.exponential_moving_average(X, alpha=alpha)
+        assert np.allclose(ema, expected_ema, atol=1e-4)
+
+    def test_invalid_alpha(self):
+        # Test that the exponential moving average raises an error
+        # when alpha is not in the interval [0, 1].
+        partial_error_msg = r""alpha must be in the interval \[0, 1\]""
+        for alpha in [-0.5, 1.5]:
+            with pytest.raises(ValueError, match=partial_error_msg):
+                ml_scorer.exponential_moving_average(np.ones(5).reshape(1, -1), alpha=alpha)
+
+
+def flip_labels(label, flip_prob):
+    """"""Flips binary labels with a given probability.""""""
+    rand_flip = np.random.choice(
+        [0, 1], size=label.shape, replace=True, p=[1 - flip_prob, flip_prob]
+    )
+    return np.abs(label - rand_flip).astype(int)
+
+
+@composite
+def cleanlab_data_strategy(draw):
+    num_classes = draw(st.integers(min_value=2, max_value=3))
+    num_samples = draw(st.integers(min_value=10, max_value=50))
+
+    # Generate true labels as one-hot encoded vectors for multi-label
+    true_labels = draw(
+        arrays(dtype=np.int8, shape=(num_samples, num_classes), elements=st.integers(0, 1))
+    )
+
+    # Generate noise matrix for multi-label and flip those values
+    flip_prob = 0.2
+    noisy_labels = flip_labels(true_labels, flip_prob)
+
+    # Multilabel find_issues raises a ValueError if all values are the same
+    # To avoid that we flip the first two values if all values are equal.
+    for i in range(noisy_labels.shape[1]):
+        if np.all(noisy_labels[:, i] == noisy_labels[0, i]):
+            noisy_labels[:2, i] = 1 - noisy_labels[:2, i]
+
+    # Generate predicted probabilities for each class for each sample
+    pred_probs = draw(
+        arrays(
+            dtype=np.float32,
+            shape=(num_samples, num_classes),
+            elements=st.floats(min_value=0, max_value=1, width=32),  # Specify width here
+        )
+    )
+
+    for i in range(num_samples):
+        for j in range(num_classes):
+            if draw(st.floats(min_value=0, max_value=1)) < 0.1:
+                # Set some probability values to exactly 0.5
+                pred_probs[i][j] = 0.5
+    return true_labels, noisy_labels, np.array(pred_probs)
+
+
+class TestMultiLabel:
+    @given(cleanlab_data_strategy())
+    @settings(deadline=20000)
+    def test_find_label_issues(self, data):
+        true_labels, noisy_labels, pred_probs = data
+        noisy_labels_list = onehot2int(noisy_labels)
+        is_issue = filter.find_label_issues(
+            labels=noisy_labels_list, pred_probs=np.array(pred_probs), n_jobs=1
+        )
+        threshold = 0.5
+        predicted_labels = (pred_probs >= threshold).astype(int)
+
+        # Check if predicted labels are the same as noisy labels for each example
+        labels_match = np.all(predicted_labels == noisy_labels, axis=1)
+
+        # For any example flagged as having an issue, there should be at least one label mismatch
+        assert not np.any(
+            is_issue & labels_match
+        ), ""Examples with issues must have at least one label mismatch.""
+",def onehot2int(onehot_matrix: np.ndarray) ->List[List[int]]:,"def onehot2int(onehot_matrix: np.ndarray) ->List[List[int]]:
+    """"""Convert multi-label classification `labels` from a onehot matrix format to a ``List[List[int]]`` format that can be used with other cleanlab functions.
+    Parameters
+    ----------
+    onehot_matrix: 2D np.ndarray of 0s and 1s
+      A matrix representation of multi-label classification labels in a binarized format as a multi-hot vector for each example.
+      The entries in this vector are 1 for each class that applies to this example and 0 otherwise.
+    Returns
+    -------
+    labels: list of lists of integers
+      e.g. [[0,1], [3], [1,2,3], [1], [2]]
+      All integers from 0,1,...,K-1 must be represented.""""""
+    return [np.where(row)[0].tolist() for row in onehot_matrix]","def onehot2int(onehot_matrix: np.ndarray) ->List[List[int]]:
+    """"""Convert multi-label classification `labels` from a onehot matrix format to a ``List[List[int]]`` format that can be used with other cleanlab functions.
+    Parameters
+    ----------
+    onehot_matrix: 2D np.ndarray of 0s and 1s
+      A matrix representation of multi-label classification labels in a binarized format as a multi-hot vector for each example.
+      The entries in this vector are 1 for each class that applies to this example and 0 otherwise.
+    Returns
+    -------
+    labels: list of lists of integers
+      e.g. [[0,1], [3], [1,2,3], [1], [2]]
+      All integers from 0,1,...,K-1 must be represented.""""""
+    return [np.where(row)[0].tolist() for row in onehot_matrix]",1,1927817.67,9098038299,479.684896
+cleanlab_cleanlab,cleanlab,cleanlab,cleanlab/internal/multilabel_scorer.py,Null,multilabel_py,Null,f493b9953a0109e678e590f4263395ed4fa11d21,Optimize internal multilabel score,Null,cleanlab,cleanlab_cleanlab,pytest -s tests/test_multilabel_classification.py::test_multilabel_py,"@pytest.mark.parametrize('given_labels,expected', [('labels', np.full((3, 2), 0.5)), (np.array([[0, 1], [0, 0], [1, 1]]), np.array([[2 / 3, 1 / 3],[1 / 3, 2 / 3]])), (np.array([[0, 1], [0, 0], [0, 1], [0, 1]]), np.array([[4 / 4, 0 / 4], [1 / 4, 3 / 4]])), (np.array([[0, 1, 0, 0, 0, 0,0, 0, 0]]), np.array([([1, 0] if i != 1 else [0, 1]) for i in range(9)]))], ids=['default', 'Missing class assignment configuration','Missing class', 'Handle more than 8 classes'])
+def test_multilabel_py(given_labels, expected, request):
+    given_labels = request.getfixturevalue(given_labels) if isinstance(given_labels, str) else given_labels
+    py = ml_scorer.multilabel_py(given_labels)
+    assert isinstance(py, np.ndarray)
+    assert py.shape == (given_labels.shape[1], 2)
+    assert np.isclose(py, expected).all()",def multilabel_py(y: np.ndarray) ->np.ndarray:,"def multilabel_py(y: np.ndarray) ->np.ndarray:
+    """"""Compute the prior probability of each label in a multi-label classification problem.
+    Parameters
+    ----------
+    y :
+        A 2d array of binarized multi-labels of shape (N, K) where N is the number of samples and K is the number of classes.
+    Returns
+    -------
+    py :
+        A 2d array of prior probabilities of shape (K,2) where the first column is the probability of the label being 0
+        and the second column is the probability of the label being 1 for each class.
+    Examples
+    --------
+    >>> from cleanlab.internal.multilabel_scorer import multilabel_py
+    >>> import numpy as np
+    >>> y = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+    >>> multilabel_py(y)
+    array([[0.5, 0.5],
+           [0.5, 0.5]])
+    >>> y = np.array([[0, 0], [0, 1], [1, 0], [1, 0], [1, 0]])
+    >>> multilabel_py(y)
+    array([[0.4, 0.6],
+           [0.8, 0.2]])
+    """"""
+    N, _ = y.shape
+    fraction_0 = np.sum(y == 0, axis=0) / N
+    fraction_1 = 1 - fraction_0
+    py = np.column_stack((fraction_0, fraction_1))
+    return py","def multilabel_py(y: np.ndarray) ->np.ndarray:
+    """"""Compute the prior probability of each label in a multi-label classification problem.
+    Parameters
+    ----------
+    y :
+        A 2d array of binarized multi-labels of shape (N, K) where N is the number of samples and K is the number of classes.
+    Returns
+    -------
+    py :
+        A 2d array of prior probabilities of shape (K,2) where the first column is the probability of the label being 0
+        and the second column is the probability of the label being 1 for each class.
+    Examples
+    --------
+    >>> from cleanlab.internal.multilabel_scorer import multilabel_py
+    >>> import numpy as np
+    >>> y = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+    >>> multilabel_py(y)
+    array([[0.5, 0.5],
+           [0.5, 0.5]])
+    >>> y = np.array([[0, 0], [0, 1], [1, 0], [1, 0], [1, 0]])
+    >>> multilabel_py(y)
+    array([[0.4, 0.6],
+           [0.8, 0.2]])
+    """"""
+    N, _ = y.shape
+    fraction_0 = np.sum(y == 0, axis=0) / N
+    fraction_1 = 1 - fraction_0
+    py = np.column_stack((fraction_0, fraction_1))
+    return py",1,647.67,1189345,0.0
+cleanlab_cleanlab,cleanlab,cleanlab,cleanlab/segmentation/filter.py,Null,find_label_issues,Null,7d1f3350174b280aa5752059e39174098ed33bec,Improve performance of find_label_issues for segmentation,Null,cleanlab,cleanlab_cleanlab,pytest -s tests/test_segmentation.py::test_find_label_issues,"def test_find_label_issues():
+    issues = find_label_issues(labels, pred_probs, n_jobs=None, batch_size=1000)
+    assert np.argmax(error) == np.argmax(issues.sum((1, 2)))
+    issues = find_label_issues(labels, pred_probs, downsample=2, batch_size=1739)
+    assert np.argmax(error) == np.argmax(issues.sum((1, 2)))
+    issues = find_label_issues(labels, pred_probs, downsample=5, n_jobs= None, batch_size=2838)
+    assert np.argmax(error) == np.argmax(issues.sum((1, 2)))
+    with pytest.raises(Exception) as e:
+        issues = find_label_issues(labels, pred_probs, downsample=4, n_jobs=None, batch_size=1000)
+    issues = find_label_issues(labels, pred_probs, downsample=1, n_jobs= None, batch_size=2000)
+    assert np.argmax(error) == np.argmax(issues.sum((1, 2)))
+    issues = find_label_issues(labels, pred_probs, downsample=1, n_jobs= None, batch_size=500)
+    assert np.argmax(error) == np.argmax(issues.sum((1, 2)))
+    issues = find_label_issues(labels, pred_probs, downsample=1, verbose=False)
+    assert np.argmax(error) == np.argmax(issues.sum((1, 2)))
+    with pytest.raises(Exception) as e:
+        issues = find_label_issues(labels, pred_probs, downsample=3, n_jobs=None, batch_size=1000)
+    issues = find_label_issues(labels, pred_probs, downsample=1, n_jobs=2,batch_size=1000)
+    assert np.argmax(error) == np.argmax(issues.sum((1, 2)))
+    with pytest.raises(Exception) as e:
+        issues = find_label_issues(np.array([[[[1, 2, 3]]]]), pred_probs,downsample=1, n_jobs=None, batch_size=1000)
+    with pytest.raises(Exception) as e:
+        issues = find_label_issues(labels, np.array([[[[0.1, 0.2, 0.3]]]]),downsample=1, n_jobs=None, batch_size=1000)","def find_label_issues(labels: np.ndarray, pred_probs: np.ndarray, *,batch_size: Optional[int]=None, n_jobs: Optional[int]=None, verbose:bool=True, **kwargs) ->np.ndarray:","def find_label_issues(labels: np.ndarray, pred_probs: np.ndarray, *,batch_size: Optional[int]=None, n_jobs: Optional[int]=None, verbose:bool=True, **kwargs) ->np.ndarray:
+    """"""
+    Returns a boolean mask for the entire dataset, per pixel where ``True`` represents
+    an example identified with a label issue and ``False`` represents an example of a pixel correctly labeled.
+    * N - Number of images in the dataset
+    * K - Number of classes in the dataset
+    * H - Height of each image
+    * W - Width of each image
+    Tip
+    ---
+    If you encounter the error ""pred_probs is not defined"", try setting ``n_jobs=1``.
+    Parameters
+    ----------
+    labels:
+      A discrete array of shape ``(N,H,W,)`` of noisy labels for a semantic segmentation dataset, i.e. some labels may be erroneous.
+      *Format requirements*: For a dataset with K classes, each pixel must be labeled using an integer in 0, 1, ..., K-1.
+      Tip
+      ---
+      If your labels are one hot encoded you can do: ``labels = np.argmax(labels_one_hot, axis=1)`` assuming that `labels_one_hot` is of dimension ``(N,K,H,W)``, in order to get properly formatted `labels`.
+    pred_probs:
+      An array of shape ``(N,K,H,W,)`` of model-predicted class probabilities,
+      ``P(label=k|x)`` for each pixel ``x``. The prediction for each pixel is an array corresponding to the estimated likelihood that this pixel belongs to each of the ``K`` classes. The 2nd dimension of `pred_probs` must be ordered such that these probabilities correspond to class 0, 1, ..., K-1.
+    batch_size:
+      Optional size of image mini-batches used for computing the label issues in a streaming fashion (does not affect results, just the runtime and memory requirements).
+      To maximize efficiency, try to use the largest `batch_size` your memory allows. If not provided, a good default is used.
+    n_jobs:
+      Optional number of processes for multiprocessing (default value = 1). Only used on Linux.
+      If `n_jobs=None`, will use either the number of: physical cores if psutil is installed, or logical cores otherwise.
+    verbose:
+      Set to ``False`` to suppress all print statements.
+    **kwargs:
+      * downsample: int,
+        Optional factor to shrink labels and pred_probs by. Default ``1``
+        Must be a factor divisible by both the labels and the pred_probs. Larger values of `downsample` produce faster runtimes but potentially less accurate results due to over-compression. Set to 1 to avoid any downsampling.
+    Returns
+    -------
+    label_issues: np.ndarray
+      Returns a boolean **mask** for the entire dataset of length `(N,H,W)`
+      where ``True`` represents a pixel label issue and ``False`` represents an example that is correctly labeled.
+    """"""
+    batch_size, n_jobs = _get_valid_optional_params(batch_size, n_jobs)
+    downsample = kwargs.get('downsample', 1)
+    def downsample_arrays(labels: np.ndarray, pred_probs: np.ndarray,factor: int=1) ->Tuple[np.ndarray, np.ndarray]:
+        if factor == 1:
+            return labels, pred_probs
+        num_image, num_classes, h, w = pred_probs.shape
+        if h % downsample != 0 or w % downsample != 0:
+            raise ValueError(f'Height {h} and width {w} not divisible by downsample value of {downsample}. Set kwarg downsample to 1 to avoid downsampling.')
+        small_labels = np.round(labels.reshape((num_image, h // factor,factor, w // factor, factor)).mean((4, 2)))
+        small_pred_probs = pred_probs.reshape((num_image, num_classes, h //factor, factor, w // factor, factor)).mean((5, 3))
+        row_sums = small_pred_probs.sum(axis=1)
+        renorm_small_pred_probs = small_pred_probs / np.expand_dims(row_sums, 1)
+        return small_labels, renorm_small_pred_probs
+    def flatten_and_preprocess_masks(labels: np.ndarray, pred_probs: np.ndarray) ->Tuple[np.ndarray, np.ndarray]:
+        _, num_classes, _, _ = pred_probs.shape
+        labels_flat = labels.flatten().astype(int)
+        pred_probs_flat = np.moveaxis(pred_probs, 0, 1).reshape(num_classes, -1)
+        return labels_flat, pred_probs_flat.T
+    _check_input(labels, pred_probs)
+    pre_labels, pre_pred_probs = downsample_arrays(labels, pred_probs,downsample)
+    num_image, _, h, w = pre_pred_probs.shape
+    lab = LabelInspector(num_class=pre_pred_probs.shape[1], verbose=verbose,n_jobs=n_jobs, quality_score_kwargs=None, num_issue_kwargs=None)
+    n = len(pre_labels)
+    if verbose:
+        from tqdm.auto import tqdm
+        pbar = tqdm(desc='number of examples processed for estimating thresholds', total=n)
+    image_size = np.prod(pre_pred_probs.shape[1:])
+    images_per_batch = max(batch_size // image_size, 1)
+    for start_index in range(0, n, images_per_batch):
+        end_index = min(start_index + images_per_batch, n)
+        labels_batch, pred_probs_batch = flatten_and_preprocess_masks(pre_labels[start_index:end_index], pre_pred_probs[start_index:end_index])
+        lab.update_confident_thresholds(labels_batch, pred_probs_batch)
+        if verbose:
+            pbar.update(end_index - start_index)
+    if verbose:
+        pbar.close()
+        pbar = tqdm(desc='number of examples processed for checking labels',total=n)
+    for start_index in range(0, n, images_per_batch):
+        end_index = min(start_index + images_per_batch, n)
+        labels_batch, pred_probs_batch = flatten_and_preprocess_masks(pre_labels[start_index:end_index], pre_pred_probs[start_index:end_index])
+        _ = lab.score_label_quality(labels_batch, pred_probs_batch)
+        if verbose:
+            pbar.update(end_index - start_index)
+    if verbose:
+        pbar.close()
+    ranked_label_issues = lab.get_label_issues()
+    label_issues = np.full((num_image, h, w), False)
+    for i in range(0, ranked_label_issues.shape[0], batch_size):
+        issues_batch = ranked_label_issues[i:i + batch_size]
+        image_batch, batch_coor_i, batch_coor_j = (_get_indexes_from_ranked_issues(issues_batch, h, w))
+        label_issues[image_batch, batch_coor_i, batch_coor_j] = True
+        if downsample == 1:
+            pred_argmax = np.argmax(pred_probs[image_batch, :, batch_coor_i,batch_coor_j], axis=1)
+            mask = pred_argmax == labels[image_batch, batch_coor_i,batch_coor_j]
+            label_issues[image_batch[mask], batch_coor_i[mask],batch_coor_j[mask]] = False
+    if downsample != 1:
+        label_issues = label_issues.repeat(downsample, axis=1).repeat(downsample, axis=2)
+        for i in range(0, ranked_label_issues.shape[0], batch_size):
+            issues_batch = ranked_label_issues[i:i + batch_size]
+            image_batch, batch_coor_i, batch_coor_j = (_get_indexes_from_ranked_issues(issues_batch, h, w))
+            upsampled_ii = batch_coor_i * downsample
+            upsampled_jj = batch_coor_j * downsample
+            for i in range(downsample):
+                for j in range(downsample):
+                    rows = upsampled_ii + i
+                    cols = upsampled_jj + j
+                    pred_argmax = np.argmax(pred_probs[image_batch, :, rows,cols], axis=1)
+                    mask = pred_argmax == labels[image_batch, rows, cols]
+                    label_issues[image_batch[mask], rows[mask], cols[mask]] = False
+    return label_issues","def find_label_issues(labels: np.ndarray, pred_probs: np.ndarray, *,batch_size: Optional[int]=None, n_jobs: Optional[int]=None, verbose:bool=True, **kwargs) ->np.ndarray:
+    """"""
+    Returns a boolean mask for the entire dataset, per pixel where ``True`` represents
+    an example identified with a label issue and ``False`` represents an example of a pixel correctly labeled.
+    * N - Number of images in the dataset
+    * K - Number of classes in the dataset
+    * H - Height of each image
+    * W - Width of each image
+    Tip
+    ---
+    If you encounter the error ""pred_probs is not defined"", try setting ``n_jobs=1``.
+    Parameters
+    ----------
+    labels:
+      A discrete array of shape ``(N,H,W,)`` of noisy labels for a semantic segmentation dataset, i.e. some labels may be erroneous.
+      *Format requirements*: For a dataset with K classes, each pixel must be labeled using an integer in 0, 1, ..., K-1.
+      Tip
+      ---
+      If your labels are one hot encoded you can do: ``labels = np.argmax(labels_one_hot, axis=1)`` assuming that `labels_one_hot` is of dimension ``(N,K,H,W)``, in order to get properly formatted `labels`.
+    pred_probs:
+      An array of shape ``(N,K,H,W,)`` of model-predicted class probabilities,
+      ``P(label=k|x)`` for each pixel ``x``. The prediction for each pixel is an array corresponding to the estimated likelihood that this pixel belongs to each of the ``K`` classes. The 2nd dimension of `pred_probs` must be ordered such that these probabilities correspond to class 0, 1, ..., K-1.
+    batch_size:
+      Optional size of image mini-batches used for computing the label issues in a streaming fashion (does not affect results, just the runtime and memory requirements).
+      To maximize efficiency, try to use the largest `batch_size` your memory allows. If not provided, a good default is used.
+    n_jobs:
+      Optional number of processes for multiprocessing (default value = 1). Only used on Linux.
+      If `n_jobs=None`, will use either the number of: physical cores if psutil is installed, or logical cores otherwise.
+    verbose:
+      Set to ``False`` to suppress all print statements.
+    **kwargs:
+      * downsample: int,
+        Optional factor to shrink labels and pred_probs by. Default ``1``
+        Must be a factor divisible by both the labels and the pred_probs. Larger values of `downsample` produce faster runtimes but potentially less accurate results due to over-compression. Set to 1 to avoid any downsampling.
+    Returns
+    -------
+    label_issues: np.ndarray
+      Returns a boolean **mask** for the entire dataset of length `(N,H,W)`
+      where ``True`` represents a pixel label issue and ``False`` represents an example that is correctly labeled.
+    """"""
+    batch_size, n_jobs = _get_valid_optional_params(batch_size, n_jobs)
+    downsample = kwargs.get('downsample', 1)
+    def downsample_arrays(labels: np.ndarray, pred_probs: np.ndarray,factor: int=1) ->Tuple[np.ndarray, np.ndarray]:
+        if factor == 1:
+            return labels, pred_probs
+        num_image, num_classes, h, w = pred_probs.shape
+        if h % downsample != 0 or w % downsample != 0:
+            raise ValueError(f'Height {h} and width {w} not divisible by downsample value of {downsample}. Set kwarg downsample to 1 to avoid downsampling.')
+        small_labels = np.round(labels.reshape((num_image, h // factor,factor, w // factor, factor)).mean((4, 2)))
+        small_pred_probs = pred_probs.reshape((num_image, num_classes, h //factor, factor, w // factor, factor)).mean((5, 3))
+        row_sums = small_pred_probs.sum(axis=1)
+        renorm_small_pred_probs = small_pred_probs / np.expand_dims(row_sums, 1)
+        return small_labels, renorm_small_pred_probs
+    def flatten_and_preprocess_masks(labels: np.ndarray, pred_probs: np.ndarray) ->Tuple[np.ndarray, np.ndarray]:
+        _, num_classes, _, _ = pred_probs.shape
+        labels_flat = labels.flatten().astype(int)
+        pred_probs_flat = np.moveaxis(pred_probs, 0, 1).reshape(num_classes, -1)
+        return labels_flat, pred_probs_flat.T
+    _check_input(labels, pred_probs)
+    pre_labels, pre_pred_probs = downsample_arrays(labels, pred_probs,downsample)
+    num_image, _, h, w = pre_pred_probs.shape
+    lab = LabelInspector(num_class=pre_pred_probs.shape[1], verbose=verbose,n_jobs=n_jobs, quality_score_kwargs=None, num_issue_kwargs=None)
+    n = len(pre_labels)
+    if verbose:
+        from tqdm.auto import tqdm
+        pbar = tqdm(desc='number of examples processed for estimating thresholds', total=n)
+    image_size = np.prod(pre_pred_probs.shape[1:])
+    images_per_batch = max(batch_size // image_size, 1)
+    for start_index in range(0, n, images_per_batch):
+        end_index = min(start_index + images_per_batch, n)
+        labels_batch, pred_probs_batch = flatten_and_preprocess_masks(pre_labels[start_index:end_index], pre_pred_probs[start_index:end_index])
+        lab.update_confident_thresholds(labels_batch, pred_probs_batch)
+        if verbose:
+            pbar.update(end_index - start_index)
+    if verbose:
+        pbar.close()
+        pbar = tqdm(desc='number of examples processed for checking labels',total=n)
+    for start_index in range(0, n, images_per_batch):
+        end_index = min(start_index + images_per_batch, n)
+        labels_batch, pred_probs_batch = flatten_and_preprocess_masks(pre_labels[start_index:end_index], pre_pred_probs[start_index:end_index])
+        _ = lab.score_label_quality(labels_batch, pred_probs_batch)
+        if verbose:
+            pbar.update(end_index - start_index)
+    if verbose:
+        pbar.close()
+    ranked_label_issues = lab.get_label_issues()
+    label_issues = np.full((num_image, h, w), False)
+    for i in range(0, ranked_label_issues.shape[0], batch_size):
+        issues_batch = ranked_label_issues[i:i + batch_size]
+        image_batch, batch_coor_i, batch_coor_j = (_get_indexes_from_ranked_issues(issues_batch, h, w))
+        label_issues[image_batch, batch_coor_i, batch_coor_j] = True
+        if downsample == 1:
+            pred_argmax = np.argmax(pred_probs[image_batch, :, batch_coor_i,batch_coor_j], axis=1)
+            mask = pred_argmax == labels[image_batch, batch_coor_i,batch_coor_j]
+            label_issues[image_batch[mask], batch_coor_i[mask],batch_coor_j[mask]] = False
+    if downsample != 1:
+        label_issues = label_issues.repeat(downsample, axis=1).repeat(downsample, axis=2)
+        for i in range(0, ranked_label_issues.shape[0], batch_size):
+            issues_batch = ranked_label_issues[i:i + batch_size]
+            image_batch, batch_coor_i, batch_coor_j = (_get_indexes_from_ranked_issues(issues_batch, h, w))
+            upsampled_ii = batch_coor_i * downsample
+            upsampled_jj = batch_coor_j * downsample
+            for i in range(downsample):
+                for j in range(downsample):
+                    rows = upsampled_ii + i
+                    cols = upsampled_jj + j
+                    pred_argmax = np.argmax(pred_probs[image_batch, :, rows,cols], axis=1)
+                    mask = pred_argmax == labels[image_batch, rows, cols]
+                    label_issues[image_batch[mask], rows[mask], cols[mask]] = False
+    return label_issues",1,1799013.0,135040994,1.19401
+cleanlab_cleanlab,cleanlab,cleanlab,cleanlab/segmentation/rank.py,Null,get_label_quality_scores,Null,abd0924e619702c52e225cf8de9b52e80b7c66e3,"Optimize segmentation/rank.py for performance and maintainability (#1064)Enhanced `get_label_quality_scores` and `issues_from_scores` efficiency, improving execution speed and memory usage.",Null,cleanlab,cleanlab_cleanlab,pytest -s tests/test_segmentation.py::test_get_label_quality_scores,"@pytest.mark.filterwarnings('ignore::UserWarning')
+def test_get_label_quality_scores():
+    image_scores_softmin, pixel_scores = get_label_quality_scores(labels,pred_probs, method='softmin')
+    assert np.argmax(error) == np.argmin(image_scores_softmin)
+    image_scores_npi, pixel_scores = get_label_quality_scores(labels,pred_probs, method='num_pixel_issues', downsample=1)
+    assert np.argmax(error) == np.argmin(image_scores_npi)
+    image_scores_softmin, pixel_scores = get_label_quality_scores(labels,pred_probs, downsample=1, method='softmin')
+    assert len(image_scores_softmin) == labels.shape[0]
+    assert pixel_scores.shape == labels.shape","def get_label_quality_scores(labels: np.ndarray, pred_probs: np.ndarray, *,method: str='softmin', batch_size: Optional[int]=None, n_jobs: Optional[int]=None, verbose: bool=True, **kwargs) ->Tuple[np.ndarray, np.ndarray]:","def get_label_quality_scores(labels: np.ndarray, pred_probs: np.ndarray, *,method: str='softmin', batch_size: Optional[int]=None, n_jobs: Optional[int]=None, verbose: bool=True, **kwargs) ->Tuple[np.ndarray, np.ndarray]:
+    """"""Returns a label quality score for each image.
+    This is a function to compute label quality scores for semantic segmentation datasets,
+    where lower scores indicate labels less likely to be correct.
+    * N - Number of images in the dataset
+    * K - Number of classes in the dataset
+    * H - Height of each image
+    * W - Width of each image
+    Parameters
+    ----------
+    labels:
+      A discrete array of noisy labels for a segmantic segmentation dataset, in the shape ``(N,H,W,)``,
+      where each pixel must be integer in 0, 1, ..., K-1.
+      Refer to documentation for this argument in :py:func:`find_label_issues <cleanlab.segmentation.filter.find_label_issues>` for further details.
+    pred_probs:
+      An array of shape ``(N,K,H,W,)`` of model-predicted class probabilities.
+      Refer to documentation for this argument in :py:func:`find_label_issues <cleanlab.segmentation.filter.find_label_issues>` for further details.
+    method: {""softmin"", ""num_pixel_issues""}, default=""softmin""
+      Label quality scoring method.
+      - ""softmin"" - Calculates the inner product between scores and softmax(1-scores). For efficiency, use instead of ""num_pixel_issues"".
+      - ""num_pixel_issues"" - Uses the number of pixels with label issues for each image using :py:func:`find_label_issues <cleanlab.segmentation.filter.find_label_issues>`
+    batch_size :
+      Optional size of mini-batches to use for estimating the label issues for 'num_pixel_issues' only, not 'softmin'.
+      To maximize efficiency, try to use the largest `batch_size` your memory allows. If not provided, a good default is used.
+    n_jobs:
+      Optional number of processes for multiprocessing (default value = 1). Only used on Linux. For 'num_pixel_issues' only, not 'softmin'
+      If `n_jobs=None`, will use either the number of: physical cores if psutil is installed, or logical cores otherwise.
+    verbose:
+      Set to ``False`` to suppress all print statements.
+    **kwargs:
+      * downsample : int,
+          Factor to shrink labels and pred_probs by for 'num_pixel_issues' only, not 'softmin' . Default ``16``
+          Must be a factor divisible by both the labels and the pred_probs. Larger values of `downsample` produce faster runtimes but potentially less accurate results due to over-compression. Set to 1 to avoid any downsampling.
+      * temperature : float,
+          Temperature for softmin. Default ``0.1``
+    Returns
+    -------
+    image_scores:
+        Array of shape ``(N, )`` of scores between 0 and 1, one per image in the dataset.
+        Lower scores indicate image more likely to contain a label issue.
+    pixel_scores:
+        Array of shape ``(N,H,W)`` of scores between 0 and 1, one per pixel in the dataset.
+    """"""
+    batch_size, n_jobs = _get_valid_optional_params(batch_size, n_jobs)
+    _check_input(labels, pred_probs)
+    softmin_temperature = kwargs.get('temperature', 0.1)
+    downsample_num_pixel_issues = kwargs.get('downsample', 1)
+    if method == 'num_pixel_issues':
+        _, K, _, _ = pred_probs.shape
+        labels_expanded = labels[:, np.newaxis, :, :]
+        mask = np.arange(K)[np.newaxis, :, np.newaxis, np.newaxis ] == labels_expanded
+        masked_pred_probs = np.where(mask, pred_probs, 0)
+        pixel_scores = masked_pred_probs.sum(axis=1)
+        scores = find_label_issues(labels, pred_probs, downsample=downsample_num_pixel_issues, n_jobs=n_jobs, verbose=verbose,batch_size=batch_size)
+        img_scores = 1 - np.mean(scores, axis=(1, 2))
+        return img_scores, pixel_scores
+    if downsample_num_pixel_issues != 1:
+        warnings.warn(f'image will not downsample for method {method} is only for method: num_pixel_issues')
+    num_im, num_class, h, w = pred_probs.shape
+    image_scores = np.empty((num_im,))
+    pixel_scores = np.empty((num_im, h, w))
+    if verbose:
+        from tqdm.auto import tqdm
+        pbar = tqdm(desc=f'images processed using {method}', total=num_im)
+    h_array = np.arange(h)[:, None]
+    w_array = np.arange(w)
+    for image in range(num_im):
+        image_probs = pred_probs[image][labels[image], h_array, w_array]
+        pixel_scores[image, :, :] = image_probs
+        image_scores[image] = _get_label_quality_per_image(image_probs.flatten(), method=method, temperature=softmin_temperature)
+        if verbose:
+            pbar.update(1)
+    return image_scores, pixel_scores","def get_label_quality_scores(labels: np.ndarray, pred_probs: np.ndarray, *,method: str='softmin', batch_size: Optional[int]=None, n_jobs: Optional[int]=None, verbose: bool=True, **kwargs) ->Tuple[np.ndarray, np.ndarray]:
+    """"""Returns a label quality score for each image.
+    This is a function to compute label quality scores for semantic segmentation datasets,
+    where lower scores indicate labels less likely to be correct.
+    * N - Number of images in the dataset
+    * K - Number of classes in the dataset
+    * H - Height of each image
+    * W - Width of each image
+    Parameters
+    ----------
+    labels:
+      A discrete array of noisy labels for a segmantic segmentation dataset, in the shape ``(N,H,W,)``,
+      where each pixel must be integer in 0, 1, ..., K-1.
+      Refer to documentation for this argument in :py:func:`find_label_issues <cleanlab.segmentation.filter.find_label_issues>` for further details.
+    pred_probs:
+      An array of shape ``(N,K,H,W,)`` of model-predicted class probabilities.
+      Refer to documentation for this argument in :py:func:`find_label_issues <cleanlab.segmentation.filter.find_label_issues>` for further details.
+    method: {""softmin"", ""num_pixel_issues""}, default=""softmin""
+      Label quality scoring method.
+      - ""softmin"" - Calculates the inner product between scores and softmax(1-scores). For efficiency, use instead of ""num_pixel_issues"".
+      - ""num_pixel_issues"" - Uses the number of pixels with label issues for each image using :py:func:`find_label_issues <cleanlab.segmentation.filter.find_label_issues>`
+    batch_size :
+      Optional size of mini-batches to use for estimating the label issues for 'num_pixel_issues' only, not 'softmin'.
+      To maximize efficiency, try to use the largest `batch_size` your memory allows. If not provided, a good default is used.
+    n_jobs:
+      Optional number of processes for multiprocessing (default value = 1). Only used on Linux. For 'num_pixel_issues' only, not 'softmin'
+      If `n_jobs=None`, will use either the number of: physical cores if psutil is installed, or logical cores otherwise.
+    verbose:
+      Set to ``False`` to suppress all print statements.
+    **kwargs:
+      * downsample : int,
+          Factor to shrink labels and pred_probs by for 'num_pixel_issues' only, not 'softmin' . Default ``16``
+          Must be a factor divisible by both the labels and the pred_probs. Larger values of `downsample` produce faster runtimes but potentially less accurate results due to over-compression. Set to 1 to avoid any downsampling.
+      * temperature : float,
+          Temperature for softmin. Default ``0.1``
+    Returns
+    -------
+    image_scores:
+        Array of shape ``(N, )`` of scores between 0 and 1, one per image in the dataset.
+        Lower scores indicate image more likely to contain a label issue.
+    pixel_scores:
+        Array of shape ``(N,H,W)`` of scores between 0 and 1, one per pixel in the dataset.
+    """"""
+    batch_size, n_jobs = _get_valid_optional_params(batch_size, n_jobs)
+    _check_input(labels, pred_probs)
+    softmin_temperature = kwargs.get('temperature', 0.1)
+    downsample_num_pixel_issues = kwargs.get('downsample', 1)
+    if method == 'num_pixel_issues':
+        _, K, _, _ = pred_probs.shape
+        labels_expanded = labels[:, np.newaxis, :, :]
+        mask = np.arange(K)[np.newaxis, :, np.newaxis, np.newaxis ] == labels_expanded
+        masked_pred_probs = np.where(mask, pred_probs, 0)
+        pixel_scores = masked_pred_probs.sum(axis=1)
+        scores = find_label_issues(labels, pred_probs, downsample=downsample_num_pixel_issues, n_jobs=n_jobs, verbose=verbose,batch_size=batch_size)
+        img_scores = 1 - np.mean(scores, axis=(1, 2))
+        return img_scores, pixel_scores
+    if downsample_num_pixel_issues != 1:
+        warnings.warn(f'image will not downsample for method {method} is only for method: num_pixel_issues')
+    num_im, num_class, h, w = pred_probs.shape
+    image_scores = np.empty((num_im,))
+    pixel_scores = np.empty((num_im, h, w))
+    if verbose:
+        from tqdm.auto import tqdm
+        pbar = tqdm(desc=f'images processed using {method}', total=num_im)
+    h_array = np.arange(h)[:, None]
+    w_array = np.arange(w)
+    for image in range(num_im):
+        image_probs = pred_probs[image][labels[image], h_array, w_array]
+        pixel_scores[image, :, :] = image_probs
+        image_scores[image] = _get_label_quality_per_image(image_probs.flatten(), method=method, temperature=softmin_temperature)
+        if verbose:
+            pbar.update(1)
+    return image_scores, pixel_scores",1,293997.67,27157911,1.044271
+cleanlab_cleanlab,cleanlab,cleanlab,cleanlab/segmentation/rank.py,Null,issues_from_scores,Null,abd0924e619702c52e225cf8de9b52e80b7c66e3,"Optimize segmentation/rank.py for performance and maintainability (#1064)Enhanced `get_label_quality_scores` and `issues_from_scores` efficiency, improving execution speed and memory usage.",Null,cleanlab,cleanlab_cleanlab,pytest -s tests/test_segmentation.py::test_issues_from_scores,"def test_issues_from_scores():
+    image_scores_softmin, pixel_scores = get_label_quality_scores(labels,pred_probs, method='softmin')
+    issues_from_score = issues_from_scores(image_scores_softmin,pixel_scores, threshold=1)
+    assert np.shape(issues_from_score) == np.shape(pixel_scores)
+    assert h * w * num_images == issues_from_score.sum()
+    issues_from_score = issues_from_scores(image_scores_softmin,pixel_scores, threshold=0)
+    assert 0 == issues_from_score.sum()
+    issues_from_score = issues_from_scores(image_scores_softmin,pixel_scores, threshold=0.5)
+    assert np.argmax(error) == np.argmax(issues_from_score.sum((1, 2)))
+    sort_by_score = issues_from_scores(image_scores_softmin, threshold=0.5)
+    assert error[sort_by_score[0]] == 1","def issues_from_scores(image_scores: np.ndarray, pixel_scores: Optional[np.ndarray]=None, threshold: float=0.1) ->np.ndarray:","def issues_from_scores(image_scores: np.ndarray, pixel_scores: Optional[np.ndarray]=None, threshold: float=0.1) ->np.ndarray:
+    """"""
+    Converts scores output by `~cleanlab.segmentation.rank.get_label_quality_scores`
+    to a list of issues of similar format as output by :py:func:`segmentation.filter.find_label_issues <cleanlab.segmentation.filter.find_label_issues>`.
+    Only considers as issues those tokens with label quality score lower than `threshold`,
+    so this parameter determines the number of issues that are returned.
+    Note
+    ----
+    - This method is intended for converting the most severely mislabeled examples into a format compatible with ``summary`` methods like :py:func:`segmentation.summary.display_issues <cleanlab.segmentation.summary.display_issues>`.
+    - This method does not estimate the number of label errors since the `threshold` is arbitrary, for that instead use :py:func:`segmentation.filter.find_label_issues <cleanlab.segmentation.filter.find_label_issues>`, which estimates the label errors via Confident Learning rather than score thresholding.
+    Parameters
+    ----------
+    image_scores:
+      Array of shape `(N, )` of overall image scores, where `N` is the number of images in the dataset.
+      Same format as the `image_scores` returned by `~cleanlab.segmentation.rank.get_label_quality_scores`.
+    pixel_scores:
+      Optional array of shape ``(N,H,W)`` of scores between 0 and 1, one per pixel in the dataset.
+      Same format as the `pixel_scores` returned by `~cleanlab.segmentation.rank.get_label_quality_scores`.
+    threshold:
+        Optional quality scores threshold that determines which pixels are included in result. Pixels with with quality scores above the `threshold` are not
+        included in the result. If not provided, all pixels are included in result.
+    Returns
+    ---------
+    issues:
+      Returns a boolean **mask** for the entire dataset
+      where ``True`` represents a pixel label issue and ``False`` represents an example that is
+      accurately labeled with using the threshold provided by the user.
+      Use :py:func:`segmentation.summary.display_issues <cleanlab.segmentation.summary.display_issues>`
+      to view these issues within the original images.
+      If `pixel_scores` is not provided, returns array of integer indices (rather than boolean mask) of the images whose label quality score
+      falls below the `threshold` (sorted by overall label quality score of each image).
+    """"""
+    if image_scores is None:
+        raise ValueError('pixel_scores must be provided')
+    if threshold < 0 or threshold > 1 or threshold is None:
+        raise ValueError('threshold must be between 0 and 1')
+    if pixel_scores is not None:
+        return pixel_scores < threshold
+    ranking = np.argsort(image_scores)
+    cutoff = np.searchsorted(image_scores[ranking], threshold)
+    return ranking[:cutoff + 1]","def issues_from_scores(image_scores: np.ndarray, pixel_scores: Optional[np.ndarray]=None, threshold: float=0.1) ->np.ndarray:
+    """"""
+    Converts scores output by `~cleanlab.segmentation.rank.get_label_quality_scores`
+    to a list of issues of similar format as output by :py:func:`segmentation.filter.find_label_issues <cleanlab.segmentation.filter.find_label_issues>`.
+    Only considers as issues those tokens with label quality score lower than `threshold`,
+    so this parameter determines the number of issues that are returned.
+    Note
+    ----
+    - This method is intended for converting the most severely mislabeled examples into a format compatible with ``summary`` methods like :py:func:`segmentation.summary.display_issues <cleanlab.segmentation.summary.display_issues>`.
+    - This method does not estimate the number of label errors since the `threshold` is arbitrary, for that instead use :py:func:`segmentation.filter.find_label_issues <cleanlab.segmentation.filter.find_label_issues>`, which estimates the label errors via Confident Learning rather than score thresholding.
+    Parameters
+    ----------
+    image_scores:
+      Array of shape `(N, )` of overall image scores, where `N` is the number of images in the dataset.
+      Same format as the `image_scores` returned by `~cleanlab.segmentation.rank.get_label_quality_scores`.
+    pixel_scores:
+      Optional array of shape ``(N,H,W)`` of scores between 0 and 1, one per pixel in the dataset.
+      Same format as the `pixel_scores` returned by `~cleanlab.segmentation.rank.get_label_quality_scores`.
+    threshold:
+        Optional quality scores threshold that determines which pixels are included in result. Pixels with with quality scores above the `threshold` are not
+        included in the result. If not provided, all pixels are included in result.
+    Returns
+    ---------
+    issues:
+      Returns a boolean **mask** for the entire dataset
+      where ``True`` represents a pixel label issue and ``False`` represents an example that is
+      accurately labeled with using the threshold provided by the user.
+      Use :py:func:`segmentation.summary.display_issues <cleanlab.segmentation.summary.display_issues>`
+      to view these issues within the original images.
+      If `pixel_scores` is not provided, returns array of integer indices (rather than boolean mask) of the images whose label quality score
+      falls below the `threshold` (sorted by overall label quality score of each image).
+    """"""
+    if image_scores is None:
+        raise ValueError('pixel_scores must be provided')
+    if threshold < 0 or threshold > 1 or threshold is None:
+        raise ValueError('threshold must be between 0 and 1')
+    if pixel_scores is not None:
+        return pixel_scores < threshold
+    ranking = np.argsort(image_scores)
+    cutoff = np.searchsorted(image_scores[ranking], threshold)
+    return ranking[:cutoff + 1]",1,1547.33,2453185,0.244792
+cleanlab_cleanlab,cleanlab,cleanlab,cleanlab/rank.py,Null,get_normalized_margin_for_each_label,Null,6d45971cf83ccc85ac31d2591c54ce6b52a27281,List comprehension to numpy ops for efficiency,Null,cleanlab,cleanlab_cleanlab,pytest -s tests/test_rank.py::test_get_normalized_margin_for_each_label,"def test_get_normalized_margin_for_each_label():
+    scores = rank.get_normalized_margin_for_each_label(data['labels'], data['pred_probs'])
+    label_errors = np.arange(len(data['labels']))[data['label_errors_mask']]
+    least_confident_label = np.argmin(scores)
+    most_confident_label = np.argmax(scores)
+    assert least_confident_label in label_errors
+    assert most_confident_label not in label_errors","def get_normalized_margin_for_each_label(labels: np.ndarray, pred_probs: np.ndarray) ->np.ndarray:","def get_normalized_margin_for_each_label(labels: np.ndarray, pred_probs: np.ndarray) ->np.ndarray:
+    """"""Returns the ""normalized margin"" label-quality score for each datapoint.
+    This is a function to compute label-quality scores for classification datasets,
+    where lower scores indicate labels less likely to be correct.
+    Letting ``k`` denote the given label for a datapoint, the margin is
+    ``(p(label = k) - max(p(label != k)))``, i.e. the probability
+    of the given label minus the probability of the argmax label that is not
+    the given label (``margin = prob_label - max_prob_not_label``).
+    This gives you an idea of how likely an example is BOTH its given label AND not another label,
+    and therefore, scores its likelihood of being a good label or a label error.
+    The normalized margin is simply a transformed version of the margin,
+    to ensure values between 0-1 with lower values indicating more likely mislabeled data.
+    Normalized margin works best for finding class conditional label errors where
+    there is another label in the set of classes that is clearly better than the given label.
+    Parameters
+    ----------
+    labels : np.ndarray
+      Labels in the same format expected by the :py:func:`get_label_quality_scores <cleanlab.rank.get_label_quality_scores>` function.
+    pred_probs : np.ndarray
+      Predicted-probabilities in the same format expected by the :py:func:`get_label_quality_scores <cleanlab.rank.get_label_quality_scores>` function.
+    Returns
+    -------
+    label_quality_scores : np.ndarray
+      Contains one score (between 0 and 1) per example.
+      Lower scores indicate more likely mislabeled examples.
+    """"""
+    self_confidence = get_self_confidence_for_each_label(labels, pred_probs)
+    N, K = pred_probs.shape
+    del_indices = np.arange(N) * K + labels
+    max_prob_not_label = np.max(np.delete(pred_probs, del_indices, axis= None).reshape(N, K - 1), axis=-1)
+    label_quality_scores = (self_confidence - max_prob_not_label + 1) / 2
+    return label_quality_scores","def get_normalized_margin_for_each_label(labels: np.ndarray, pred_probs: np.ndarray) ->np.ndarray:
+    """"""Returns the ""normalized margin"" label-quality score for each datapoint.
+    This is a function to compute label-quality scores for classification datasets,
+    where lower scores indicate labels less likely to be correct.
+    Letting ``k`` denote the given label for a datapoint, the margin is
+    ``(p(label = k) - max(p(label != k)))``, i.e. the probability
+    of the given label minus the probability of the argmax label that is not
+    the given label (``margin = prob_label - max_prob_not_label``).
+    This gives you an idea of how likely an example is BOTH its given label AND not another label,
+    and therefore, scores its likelihood of being a good label or a label error.
+    The normalized margin is simply a transformed version of the margin,
+    to ensure values between 0-1 with lower values indicating more likely mislabeled data.
+    Normalized margin works best for finding class conditional label errors where
+    there is another label in the set of classes that is clearly better than the given label.
+    Parameters
+    ----------
+    labels : np.ndarray
+      Labels in the same format expected by the :py:func:`get_label_quality_scores <cleanlab.rank.get_label_quality_scores>` function.
+    pred_probs : np.ndarray
+      Predicted-probabilities in the same format expected by the :py:func:`get_label_quality_scores <cleanlab.rank.get_label_quality_scores>` function.
+    Returns
+    -------
+    label_quality_scores : np.ndarray
+      Contains one score (between 0 and 1) per example.
+      Lower scores indicate more likely mislabeled examples.
+    """"""
+    self_confidence = get_self_confidence_for_each_label(labels, pred_probs)
+    N, K = pred_probs.shape
+    del_indices = np.arange(N) * K + labels
+    max_prob_not_label = np.max(np.delete(pred_probs, del_indices, axis= None).reshape(N, K - 1), axis=-1)
+    label_quality_scores = (self_confidence - max_prob_not_label + 1) / 2
+    return label_quality_scores",1,670.67,1008320,0.0
+optuna_optuna,optuna,optuna,optuna/study/_multi_objective.py,Null,_calculate_nondomination_rank,Null,c47870fd9018b0dcac0891c68addfb6e77138b56,Merge speed-up-nondominated-sort,"def test_fast_non_domination_rank(trial_values: list[float], trial_ranks: list[int]) -> None:    ranks = list(_fast_non_domination_rank(np.array(trial_values)))    assert np.array_equal(ranks, trial_ranks)def test_fast_non_domination_rank_invalid() -> None:    with pytest.raises(ValueError):        _fast_non_domination_rank(            np.array([[1.0, 2.0], [3.0, 4.0]]), penalty=np.array([1.0, 2.0, 3.0])        )",optuna,optuna_optuna,pytest -s tests/study_tests/test_multi_objective.py::test_fast_non_domination_rank,"@pytest.mark.parametrize(('trial_values', 'trial_ranks'), [([[10], [20], [20], [30]], [0, 1, 1, 2]), ([[10, 30], [10, 10], [20, 20], [30, 10], [15, 15]], [1, 0, 2, 1, 1]), ([[5, 5, 4], [5, 5, 5], [9, 9, 0], [5, 7, 5], [0, 0, 9], [0, 9, 9]], [0, 1, 0, 2, 0, 1]), ([[-5, -5, -4], [-5, -5,5], [-9, -9, 0], [5, 7, 5], [0, 0, -9], [0, -9, 9]], [0, 1, 0, 2, 0, 1]), ([[1, 1], [1, float('inf')], [float('inf'), 1], [float('inf'), float ('inf')]], [0, 1, 1, 2]), ([[1, 1], [1, -float('inf')], [-float('inf'),1], [-float('inf'), -float('inf')]], [2, 1, 1, 0]), ([[1, 1], [1, 1], [1, 2], [2, 1], [0, 1.5], [1.5, 0], [0, 1.5]], [0, 0, 1, 1, 0, 0, 0]), ([[1, 1], [1, 1], [1, 2], [2, 1], [1, 1], [0, 1.5], [0, 1.5]], [0, 0, 1,1, 0, 0, 0]), ([[1, 1, 1], [1, 1, 1], [1, 1, 2], [1, 2, 1], [2, 1, 1],[0, 1.5, 1.5], [0, 1.5, 1.5]], [0, 0, 1, 1, 1, 0, 0])])
+def test_fast_non_domination_rank(trial_values: list[float], trial_ranks:list[int]) ->None:
+    ranks = list(_fast_non_domination_rank(np.array(trial_values)))
+    assert np.array_equal(ranks, trial_ranks)","def _calculate_nondomination_rank(loss_values: np.ndarray, *, n_below: (int | None)=None) ->np.ndarray:","def _calculate_nondomination_rank(loss_values: np.ndarray, *, n_below: (int | None)=None) ->np.ndarray:
+    if len(loss_values) == 0 or n_below is not None and n_below <= 0:
+        return np.zeros(len(loss_values), dtype=int)
+    n_trials, n_objectives = loss_values.shape
+    if n_objectives == 1:
+        _, ranks = np.unique(loss_values[:, 0], return_inverse=True)
+        return ranks
+    unique_lexsorted_loss_values, order_inv = np.unique(loss_values, return_inverse=True, axis=0)
+    n_unique = unique_lexsorted_loss_values.shape[0]
+    n_below = min(n_below or len(unique_lexsorted_loss_values), len(unique_lexsorted_loss_values))
+    ranks = np.zeros(n_unique, dtype=int)
+    rank = 0
+    indices = np.arange(n_unique)
+    while n_unique - indices.size < n_below:
+        on_front = _is_pareto_front(unique_lexsorted_loss_values)
+        ranks[indices[on_front]] = rank
+        indices = indices[~on_front]
+        unique_lexsorted_loss_values = unique_lexsorted_loss_values[~on_front]
+        rank += 1
+    ranks[indices] = rank
+    return ranks[order_inv]","def _calculate_nondomination_rank(loss_values: np.ndarray, *, n_below: (int | None)=None) ->np.ndarray:
+    if len(loss_values) == 0 or n_below is not None and n_below <= 0:
+        return np.zeros(len(loss_values), dtype=int)
+    n_trials, n_objectives = loss_values.shape
+    if n_objectives == 1:
+        _, ranks = np.unique(loss_values[:, 0], return_inverse=True)
+        return ranks
+    unique_lexsorted_loss_values, order_inv = np.unique(loss_values, return_inverse=True, axis=0)
+    n_unique = unique_lexsorted_loss_values.shape[0]
+    n_below = min(n_below or len(unique_lexsorted_loss_values), len(unique_lexsorted_loss_values))
+    ranks = np.zeros(n_unique, dtype=int)
+    rank = 0
+    indices = np.arange(n_unique)
+    while n_unique - indices.size < n_below:
+        on_front = _is_pareto_front(unique_lexsorted_loss_values)
+        ranks[indices[on_front]] = rank
+        indices = indices[~on_front]
+        unique_lexsorted_loss_values = unique_lexsorted_loss_values[~on_front]
+        rank += 1
+    ranks[indices] = rank
+    return ranks[order_inv]",1,621.67,1091016,0.375
+optuna_optuna,optuna,optuna,optuna/_hypervolume/hssp.py,Null,_solve_hssp,Null,fd09877846e4a3aa4ff26125db9d8a466eaf0965,Merge pull request #5355 from nabenabe0928/enhance/make-hv-contrib-calculation-lazyMake HV calculations in HSSP lazy to speed up,Null,optuna,optuna_optuna,pytest -s tests/hypervolume_tests/test_hssp.py,"import itertools
+from typing import Tuple
+
+import numpy as np
+import pytest
+
+import optuna
+
+
+def _compute_hssp_truth_and_approx(test_case: np.ndarray, subset_size: int) -> Tuple[float, float]:
+    r = 1.1 * np.max(test_case, axis=0)
+    truth = 0.0
+    for subset in itertools.permutations(test_case, subset_size):
+        truth = max(truth, optuna._hypervolume.WFG().compute(np.asarray(subset), r))
+    indices = optuna._hypervolume.hssp._solve_hssp(
+        test_case, np.arange(len(test_case)), subset_size, r
+    )
+    approx = optuna._hypervolume.WFG().compute(test_case[indices], r)
+    return truth, approx
+
+
+@pytest.mark.parametrize(""dim"", [2, 3])
+def test_solve_hssp(dim: int) -> None:
+    rng = np.random.RandomState(128)
+
+    for i in range(1, 9):
+        subset_size = np.random.randint(1, i + 1)
+        test_case = rng.rand(8, dim)
+        truth, approx = _compute_hssp_truth_and_approx(test_case, subset_size)
+        assert approx / truth > 0.6321  # 1 - 1/e
+
+
+@pytest.mark.filterwarnings(""ignore::RuntimeWarning"")
+def test_solve_hssp_infinite_loss() -> None:
+    rng = np.random.RandomState(128)
+
+    subset_size = 4
+    test_case = rng.rand(9, 2)
+    test_case[-1].fill(float(""inf""))
+    truth, approx = _compute_hssp_truth_and_approx(test_case, subset_size)
+    assert np.isinf(truth)
+    assert np.isinf(approx)
+
+    test_case = rng.rand(9, 3)
+    test_case[-1].fill(float(""inf""))
+    truth, approx = _compute_hssp_truth_and_approx(test_case, subset_size)
+    assert truth == 0
+    assert np.isnan(approx)
+
+    for dim in range(2, 4):
+        test_case = rng.rand(9, dim)
+        test_case[-1].fill(-float(""inf""))
+        truth, approx = _compute_hssp_truth_and_approx(test_case, subset_size)
+        assert np.isinf(truth)
+        assert np.isinf(approx)
+
+
+@pytest.mark.filterwarnings(""ignore::RuntimeWarning"")
+def test_solve_hssp_duplicated_infinite_loss() -> None:
+    test_case = np.array([[np.inf, 0, 0], [np.inf, 0, 0], [0, np.inf, 0], [0, 0, np.inf]])
+    r = np.full(3, np.inf)
+    res = optuna._hypervolume._solve_hssp(
+        rank_i_loss_vals=test_case, rank_i_indices=np.arange(4), subset_size=2, reference_point=r
+    )
+    assert (0 not in res) or (1 not in res)
+","def _solve_hssp(rank_i_loss_vals: np.ndarray, rank_i_indices: np.ndarray,subset_size: int, reference_point: np.ndarray) ->np.ndarray:","def _solve_hssp(rank_i_loss_vals: np.ndarray, rank_i_indices: np.ndarray,subset_size: int, reference_point: np.ndarray) ->np.ndarray:
+    """"""Solve a hypervolume subset selection problem (HSSP) via a greedy algorithm.
+    This method is a 1-1/e approximation algorithm to solve HSSP.
+    For further information about algorithms to solve HSSP, please refer to the following
+    paper:
+    - `Greedy Hypervolume Subset Selection in Low Dimensions
+       <https://doi.org/10.1162/EVCO_a_00188>`_
+    """"""
+    if subset_size == rank_i_indices.size:
+        return rank_i_indices
+    rank_i_unique_loss_vals, indices_of_unique_loss_vals = np.unique(rank_i_loss_vals, return_index=True, axis=0)
+    n_unique = indices_of_unique_loss_vals.size
+    if n_unique < subset_size:
+        chosen = np.zeros(rank_i_indices.size, dtype=bool)
+        chosen[indices_of_unique_loss_vals] = True
+        duplicated_indices = np.arange(rank_i_indices.size)[~chosen]
+        chosen[duplicated_indices[:subset_size - n_unique]] = True
+        return rank_i_indices[chosen]
+    subset_indices_of_unique_loss_vals = _solve_hssp_on_unique_loss_vals(rank_i_unique_loss_vals, indices_of_unique_loss_vals, subset_size,reference_point)
+    return rank_i_indices[subset_indices_of_unique_loss_vals]","def _solve_hssp(rank_i_loss_vals: np.ndarray, rank_i_indices: np.ndarray,subset_size: int, reference_point: np.ndarray) ->np.ndarray:
+    """"""Solve a hypervolume subset selection problem (HSSP) via a greedy algorithm.
+    This method is a 1-1/e approximation algorithm to solve HSSP.
+    For further information about algorithms to solve HSSP, please refer to the following
+    paper:
+    - `Greedy Hypervolume Subset Selection in Low Dimensions
+       <https://doi.org/10.1162/EVCO_a_00188>`_
+    """"""
+    if subset_size == rank_i_indices.size:
+        return rank_i_indices
+    rank_i_unique_loss_vals, indices_of_unique_loss_vals = np.unique(rank_i_loss_vals, return_index=True, axis=0)
+    n_unique = indices_of_unique_loss_vals.size
+    if n_unique < subset_size:
+        chosen = np.zeros(rank_i_indices.size, dtype=bool)
+        chosen[indices_of_unique_loss_vals] = True
+        duplicated_indices = np.arange(rank_i_indices.size)[~chosen]
+        chosen[duplicated_indices[:subset_size - n_unique]] = True
+        return rank_i_indices[chosen]
+    subset_indices_of_unique_loss_vals = _solve_hssp_on_unique_loss_vals(rank_i_unique_loss_vals, indices_of_unique_loss_vals, subset_size,reference_point)
+    return rank_i_indices[subset_indices_of_unique_loss_vals]",1,667008.67,4235067136,0.0
+optuna_optuna,optuna,optuna,optuna/_hypervolume/wfg.py,Null,compute_hypervolume,Null,3743c51d3bea9df111030259c9a13d265618038a,Merge pull request #5591 from nabenabe0928/enhance/add-more-explanation-to-hypervolume-related-funcsSpeed up WFG by using a fact that hypervolume calculation does not need (second or later) duplicated Pareto solutions,Null,optuna,optuna_optuna,pytest -s tests/hypervolume_tests/test_wfg.py::test_wfg_2d,"@pytest.mark.parametrize('assume_pareto', (True, False))
+@pytest.mark.parametrize('n_sols', list(range(2, 30)))
+def test_wfg_2d(assume_pareto: bool, n_sols: int) ->None:
+    n = n_sols
+    rng = np.random.RandomState(42)
+    r = n * np.ones(2)
+    s = np.empty((2 * n + 1, 2), dtype=int)
+    s[:n] = np.stack([np.arange(n), np.arange(n)[::-1]], axis=-1)
+    s[n:] = np.stack([np.arange(n + 1), np.arange(n + 1)[::-1]], axis=-1)
+    s = _shuffle_and_filter_sols(s, assume_pareto, rng)
+    assert optuna._hypervolume.compute_hypervolume(s, r, assume_pareto) == n * n - n * (n - 1) // 2","def compute_hypervolume(loss_vals: np.ndarray, reference_point: np.ndarray, assume_pareto: bool=False) ->float:","def compute_hypervolume(loss_vals: np.ndarray, reference_point: np.ndarray, assume_pareto: bool=False) ->float:
+    """"""Hypervolume calculator for any dimension.
+    This class exactly calculates the hypervolume for any dimension.
+    For 3 dimensions or higher, the WFG algorithm will be used.
+    Please refer to ``A Fast Way of Calculating Exact Hypervolumes`` for the WFG algorithm.
+    .. note::
+        This class is used for computing the hypervolumes of points in multi-objective space.
+        Each coordinate of each point represents a ``values`` of the multi-objective function.
+    .. note::
+        We check that each objective is to be minimized. Transform objective values that are
+        to be maximized before calling this class's ``compute`` method.
+    Args:
+        loss_vals:
+            An array of loss value vectors to calculate the hypervolume.
+        reference_point:
+            The reference point used to calculate the hypervolume.
+        assume_pareto:
+            Whether to assume the Pareto optimality to ``loss_vals``.
+            In other words, if ``True``, none of loss vectors are dominated by another.
+            ``assume_pareto`` is used only for speedup and it does not change the result even if
+            this argument is wrongly given. If there are many non-Pareto solutions in
+            ``loss_vals``, ``assume_pareto=True`` will speed up the calculation.
+    Returns:
+        The hypervolume of the given arguments.
+    """"""
+    if not np.all(loss_vals <= reference_point):
+        raise ValueError('All points must dominate or equal the reference point. That is, for all points in the loss_vals and the coordinate `i`, `loss_vals[i] <= reference_point[i]`.')
+    if not np.all(np.isfinite(reference_point)):
+        return float('inf')
+    if not assume_pareto:
+        unique_lexsorted_loss_vals = np.unique(loss_vals, axis=0)
+        on_front = _is_pareto_front(unique_lexsorted_loss_vals, assume_unique_lexsorted=True)
+        sorted_pareto_sols = unique_lexsorted_loss_vals[on_front]
+    else:
+        sorted_pareto_sols = loss_vals[loss_vals[:, 0].argsort()]
+    if reference_point.shape[0] == 2:
+        return _compute_2d(sorted_pareto_sols, reference_point)
+    return _compute_hv(sorted_pareto_sols, reference_point)","def compute_hypervolume(loss_vals: np.ndarray, reference_point: np.ndarray, assume_pareto: bool=False) ->float:
+    """"""Hypervolume calculator for any dimension.
+    This class exactly calculates the hypervolume for any dimension.
+    For 3 dimensions or higher, the WFG algorithm will be used.
+    Please refer to ``A Fast Way of Calculating Exact Hypervolumes`` for the WFG algorithm.
+    .. note::
+        This class is used for computing the hypervolumes of points in multi-objective space.
+        Each coordinate of each point represents a ``values`` of the multi-objective function.
+    .. note::
+        We check that each objective is to be minimized. Transform objective values that are
+        to be maximized before calling this class's ``compute`` method.
+    Args:
+        loss_vals:
+            An array of loss value vectors to calculate the hypervolume.
+        reference_point:
+            The reference point used to calculate the hypervolume.
+        assume_pareto:
+            Whether to assume the Pareto optimality to ``loss_vals``.
+            In other words, if ``True``, none of loss vectors are dominated by another.
+            ``assume_pareto`` is used only for speedup and it does not change the result even if
+            this argument is wrongly given. If there are many non-Pareto solutions in
+            ``loss_vals``, ``assume_pareto=True`` will speed up the calculation.
+    Returns:
+        The hypervolume of the given arguments.
+    """"""
+    if not np.all(loss_vals <= reference_point):
+        raise ValueError('All points must dominate or equal the reference point. That is, for all points in the loss_vals and the coordinate `i`, `loss_vals[i] <= reference_point[i]`.')
+    if not np.all(np.isfinite(reference_point)):
+        return float('inf')
+    if not assume_pareto:
+        unique_lexsorted_loss_vals = np.unique(loss_vals, axis=0)
+        on_front = _is_pareto_front(unique_lexsorted_loss_vals, assume_unique_lexsorted=True)
+        sorted_pareto_sols = unique_lexsorted_loss_vals[on_front]
+    else:
+        sorted_pareto_sols = loss_vals[loss_vals[:, 0].argsort()]
+    if reference_point.shape[0] == 2:
+        return _compute_2d(sorted_pareto_sols, reference_point)
+    return _compute_hv(sorted_pareto_sols, reference_point)",1,958.67,2589154,0.990885
+optuna_optuna,optuna,optuna,optuna/_hypervolume/wfg.py,Null,compute_hypervolume,Null,99b9e41bbec8ae020131686d6bc51a1f26ac84f7,Speed up WFG by using a fact that limited_sols do not need to be unique,Null,optuna,optuna_optuna,pytest -s tests/hypervolume_tests/test_wfg.py::test_wfg_2d,"@pytest.mark.parametrize('assume_pareto', (True, False))
+@pytest.mark.parametrize('n_sols', list(range(2, 30)))
+def test_wfg_2d(assume_pareto: bool, n_sols: int) ->None:
+    n = n_sols
+    rng = np.random.RandomState(42)
+    r = n * np.ones(2)
+    s = np.empty((2 * n + 1, 2), dtype=int)
+    s[:n] = np.stack([np.arange(n), np.arange(n)[::-1]], axis=-1)
+    s[n:] = np.stack([np.arange(n + 1), np.arange(n + 1)[::-1]], axis=-1)
+    s = _shuffle_and_filter_sols(s, assume_pareto, rng)
+    assert optuna._hypervolume.compute_hypervolume(s, r, assume_pareto) == n * n - n * (n - 1) // 2","def compute_hypervolume(loss_vals: np.ndarray, reference_point: np.ndarray, assume_pareto: bool=False) ->float:","def compute_hypervolume(loss_vals: np.ndarray, reference_point: np.ndarray, assume_pareto: bool=False) ->float:
+    """"""Hypervolume calculator for any dimension.
+    This class exactly calculates the hypervolume for any dimension.
+    For 3 dimensions or higher, the WFG algorithm will be used.
+    Please refer to ``A Fast Way of Calculating Exact Hypervolumes`` for the WFG algorithm.
+    .. note::
+        This class is used for computing the hypervolumes of points in multi-objective space.
+        Each coordinate of each point represents a ``values`` of the multi-objective function.
+    .. note::
+        We check that each objective is to be minimized. Transform objective values that are
+        to be maximized before calling this class's ``compute`` method.
+    Args:
+        loss_vals:
+            An array of loss value vectors to calculate the hypervolume.
+        reference_point:
+            The reference point used to calculate the hypervolume.
+        assume_pareto:
+            Whether to assume the Pareto optimality to ``loss_vals``.
+            In other words, if ``True``, none of loss vectors are dominated by another.
+            ``assume_pareto`` is used only for speedup and it does not change the result even if
+            this argument is wrongly given. If there are many non-Pareto solutions in
+            ``loss_vals``, ``assume_pareto=True`` will speed up the calculation.
+    Returns:
+        The hypervolume of the given arguments.
+    """"""
+    if not np.all(loss_vals <= reference_point):
+        raise ValueError('All points must dominate or equal the reference point. That is, for all points in the loss_vals and the coordinate `i`, `loss_vals[i] <= reference_point[i]`.')
+    if not np.all(np.isfinite(reference_point)):
+        return float('inf')
+    if not assume_pareto:
+        unique_lexsorted_loss_vals = np.unique(loss_vals, axis=0)
+        on_front = _is_pareto_front(unique_lexsorted_loss_vals, assume_unique_lexsorted=True)
+        sorted_pareto_sols = unique_lexsorted_loss_vals[on_front]
+    else:
+        sorted_pareto_sols = loss_vals[loss_vals[:, 0].argsort()]
+    if reference_point.shape[0] == 2:
+        return _compute_2d(sorted_pareto_sols, reference_point)
+    return _compute_hv(sorted_pareto_sols, reference_point)","def compute_hypervolume(loss_vals: np.ndarray, reference_point: np.ndarray, assume_pareto: bool=False) ->float:
+    """"""Hypervolume calculator for any dimension.
+    This class exactly calculates the hypervolume for any dimension.
+    For 3 dimensions or higher, the WFG algorithm will be used.
+    Please refer to ``A Fast Way of Calculating Exact Hypervolumes`` for the WFG algorithm.
+    .. note::
+        This class is used for computing the hypervolumes of points in multi-objective space.
+        Each coordinate of each point represents a ``values`` of the multi-objective function.
+    .. note::
+        We check that each objective is to be minimized. Transform objective values that are
+        to be maximized before calling this class's ``compute`` method.
+    Args:
+        loss_vals:
+            An array of loss value vectors to calculate the hypervolume.
+        reference_point:
+            The reference point used to calculate the hypervolume.
+        assume_pareto:
+            Whether to assume the Pareto optimality to ``loss_vals``.
+            In other words, if ``True``, none of loss vectors are dominated by another.
+            ``assume_pareto`` is used only for speedup and it does not change the result even if
+            this argument is wrongly given. If there are many non-Pareto solutions in
+            ``loss_vals``, ``assume_pareto=True`` will speed up the calculation.
+    Returns:
+        The hypervolume of the given arguments.
+    """"""
+    if not np.all(loss_vals <= reference_point):
+        raise ValueError('All points must dominate or equal the reference point. That is, for all points in the loss_vals and the coordinate `i`, `loss_vals[i] <= reference_point[i]`.')
+    if not np.all(np.isfinite(reference_point)):
+        return float('inf')
+    if not assume_pareto:
+        unique_lexsorted_loss_vals = np.unique(loss_vals, axis=0)
+        on_front = _is_pareto_front(unique_lexsorted_loss_vals, assume_unique_lexsorted=True)
+        sorted_pareto_sols = unique_lexsorted_loss_vals[on_front]
+    else:
+        sorted_pareto_sols = loss_vals[loss_vals[:, 0].argsort()]
+    if reference_point.shape[0] == 2:
+        return _compute_2d(sorted_pareto_sols, reference_point)
+    return _compute_hv(sorted_pareto_sols, reference_point)",1,941.0,2594020,0.988281
+optuna_optuna,optuna,optuna,optuna/_hypervolume/hssp.py,Null,_solve_hssp,Null,e2b299176f86c23e149a6f4dd223fc4df8a43446,Merge pull request #5346 from nabenabe0928/enhance/speed-up-hssp-2dReduce the time complexity of HSSP 2d from `O(NK^2 log K)` to `O((N - K)K)`,Null,optuna,optuna_optuna,pytest -s tests/hypervolume_tests/test_hssp.py::test_solve_hssp,"@pytest.mark.parametrize('dim', [2, 3])
+def test_solve_hssp(dim: int) ->None:
+    rng = np.random.RandomState(128)
+    for i in range(1, 9):
+        subset_size = np.random.randint(1, i + 1)
+        test_case = rng.rand(8, dim)
+        truth, approx = _compute_hssp_truth_and_approx(test_case, subset_size)
+        assert approx / truth > 0.6321","def _solve_hssp(rank_i_loss_vals: np.ndarray, rank_i_indices: np.ndarray,subset_size: int, reference_point: np.ndarray) ->np.ndarray:","def _solve_hssp(rank_i_loss_vals: np.ndarray, rank_i_indices: np.ndarray,subset_size: int, reference_point: np.ndarray) ->np.ndarray:
+    """"""Solve a hypervolume subset selection problem (HSSP) via a greedy algorithm.
+    This method is a 1-1/e approximation algorithm to solve HSSP.
+    For further information about algorithms to solve HSSP, please refer to the following
+    paper:
+    - `Greedy Hypervolume Subset Selection in Low Dimensions
+       <https://doi.org/10.1162/EVCO_a_00188>`_
+    """"""
+    if subset_size == rank_i_indices.size:
+        return rank_i_indices
+    rank_i_unique_loss_vals, indices_of_unique_loss_vals = np.unique(rank_i_loss_vals, return_index=True, axis=0)
+    n_unique = indices_of_unique_loss_vals.size
+    if n_unique < subset_size:
+        chosen = np.zeros(rank_i_indices.size, dtype=bool)
+        chosen[indices_of_unique_loss_vals] = True
+        duplicated_indices = np.arange(rank_i_indices.size)[~chosen]
+        chosen[duplicated_indices[:subset_size - n_unique]] = True
+        return rank_i_indices[chosen]
+    selected_indices_of_unique_loss_vals = _solve_hssp_on_unique_loss_vals(rank_i_unique_loss_vals, indices_of_unique_loss_vals, subset_size,reference_point)
+    return rank_i_indices[selected_indices_of_unique_loss_vals]","def _solve_hssp(rank_i_loss_vals: np.ndarray, rank_i_indices: np.ndarray,subset_size: int, reference_point: np.ndarray) ->np.ndarray:
+    """"""Solve a hypervolume subset selection problem (HSSP) via a greedy algorithm.
+    This method is a 1-1/e approximation algorithm to solve HSSP.
+    For further information about algorithms to solve HSSP, please refer to the following
+    paper:
+    - `Greedy Hypervolume Subset Selection in Low Dimensions
+       <https://doi.org/10.1162/EVCO_a_00188>`_
+    """"""
+    if subset_size == rank_i_indices.size:
+        return rank_i_indices
+    rank_i_unique_loss_vals, indices_of_unique_loss_vals = np.unique(rank_i_loss_vals, return_index=True, axis=0)
+    n_unique = indices_of_unique_loss_vals.size
+    if n_unique < subset_size:
+        chosen = np.zeros(rank_i_indices.size, dtype=bool)
+        chosen[indices_of_unique_loss_vals] = True
+        duplicated_indices = np.arange(rank_i_indices.size)[~chosen]
+        chosen[duplicated_indices[:subset_size - n_unique]] = True
+        return rank_i_indices[chosen]
+    selected_indices_of_unique_loss_vals = _solve_hssp_on_unique_loss_vals(rank_i_unique_loss_vals, indices_of_unique_loss_vals, subset_size,reference_point)
+    return rank_i_indices[selected_indices_of_unique_loss_vals]",1,902574.33,5862204433,2.572917
+optuna_optuna,optuna,optuna,optuna/distributions.py,CategoricalDistribution,to_internal_repr,Null,89b0fd16e811d8ca57a2c1d3d6d13e55117c37b0,Merge pull request #5400 from nabenabe0928/enhance/speed-up-to-internal-repr-in-categorical-distSpeed up `to_internal_repr` in `CategoricalDistribution`,Null,optuna,optuna_optuna,pytest -s tests/test_distributions.py::test_categorical_internal_representation,"def test_categorical_internal_representation() ->None:
+    c = EXAMPLE_DISTRIBUTIONS['c1']
+    for choice in c.choices:
+        if isinstance(choice, float) and np.isnan(choice):
+            assert np.isnan(c.to_external_repr(c.to_internal_repr(choice)))
+        else:
+            assert c.to_external_repr(c.to_internal_repr(choice)) == choice
+    c_ = distributions.json_to_distribution(EXAMPLE_JSONS['c1'])
+    for choice in cast(distributions.CategoricalDistribution, c_).choices:
+        if isinstance(choice, float) and np.isnan(choice):
+            assert np.isnan(c.to_external_repr(c.to_internal_repr(choice)))
+        else:
+            assert c.to_external_repr(c.to_internal_repr(choice)) == choice","def to_internal_repr(self, param_value_in_external_repr: CategoricalChoiceType) ->float:","def to_internal_repr(self, param_value_in_external_repr: CategoricalChoiceType) ->float:
+    try:
+        return self.choices.index(param_value_in_external_repr)
+    except ValueError:
+        for index, choice in enumerate(self.choices):
+            if _categorical_choice_equal(param_value_in_external_repr, choice):
+                return index
+    raise ValueError(f""'{param_value_in_external_repr}' not in {self.choices}."")","def to_internal_repr(self, param_value_in_external_repr: CategoricalChoiceType) ->float:
+    try:
+        return self.choices.index(param_value_in_external_repr)
+    except ValueError:
+        for index, choice in enumerate(self.choices):
+            if _categorical_choice_equal(param_value_in_external_repr, choice):
+                return index
+    raise ValueError(f""'{param_value_in_external_repr}' not in {self.choices}."")",1,453.0,1158495,0.257812
+optuna_optuna,optuna,optuna,optuna/_hypervolume/hssp.py,Null,_solve_hssp,Null,4cd22727138800425ec6067d3de6b9b28da04f79,Enhance the time complexity further,Null,optuna,optuna_optuna,pytest -s tests/hypervolume_tests/test_hssp.py::test_solve_hssp,"@pytest.mark.parametrize('dim', [2, 3])
+def test_solve_hssp(dim: int) ->None:
+    rng = np.random.RandomState(128)
+    for i in range(1, 9):
+        subset_size = np.random.randint(1, i + 1)
+        test_case = rng.rand(8, dim)
+        truth, approx = _compute_hssp_truth_and_approx(test_case, subset_size)
+        assert approx / truth > 0.6321","def _solve_hssp(rank_i_loss_vals: np.ndarray, rank_i_indices: np.ndarray,subset_size: int, reference_point: np.ndarray) ->np.ndarray:","def _solve_hssp(rank_i_loss_vals: np.ndarray, rank_i_indices: np.ndarray,subset_size: int, reference_point: np.ndarray) ->np.ndarray:
+    """"""Solve a hypervolume subset selection problem (HSSP) via a greedy algorithm.
+    This method is a 1-1/e approximation algorithm to solve HSSP.
+    For further information about algorithms to solve HSSP, please refer to the following
+    paper:
+    - `Greedy Hypervolume Subset Selection in Low Dimensions
+       <https://doi.org/10.1162/EVCO_a_00188>`_
+    """"""
+    if rank_i_loss_vals.shape[-1] == 2:
+        return _solve_hssp_2d(rank_i_loss_vals, rank_i_indices, subset_size,reference_point)
+    selected_vecs: List[np.ndarray] = []
+    selected_indices: List[int] = []
+    contributions = [optuna._hypervolume.WFG().compute(np.asarray([v]),reference_point) for v in rank_i_loss_vals]
+    hv_selected = 0.0
+    while len(selected_indices) < subset_size:
+        max_index = int(np.argmax(contributions))
+        contributions[max_index] = -1
+        selected_index = rank_i_indices[max_index]
+        selected_vec = rank_i_loss_vals[max_index]
+        for j, v in enumerate(rank_i_loss_vals):
+            if contributions[j] == -1:
+                continue
+            p = np.max([selected_vec, v], axis=0)
+            contributions[j] -= optuna._hypervolume.WFG().compute(np. asarray(selected_vecs + [p]), reference_point) - hv_selected
+        selected_vecs += [selected_vec]
+        selected_indices += [selected_index]
+        hv_selected = optuna._hypervolume.WFG().compute(np.asarray(selected_vecs), reference_point)
+    return np.asarray(selected_indices, dtype=int)","def _solve_hssp(rank_i_loss_vals: np.ndarray, rank_i_indices: np.ndarray,subset_size: int, reference_point: np.ndarray) ->np.ndarray:
+    """"""Solve a hypervolume subset selection problem (HSSP) via a greedy algorithm.
+    This method is a 1-1/e approximation algorithm to solve HSSP.
+    For further information about algorithms to solve HSSP, please refer to the following
+    paper:
+    - `Greedy Hypervolume Subset Selection in Low Dimensions
+       <https://doi.org/10.1162/EVCO_a_00188>`_
+    """"""
+    if rank_i_loss_vals.shape[-1] == 2:
+        return _solve_hssp_2d(rank_i_loss_vals, rank_i_indices, subset_size,reference_point)
+    selected_vecs: List[np.ndarray] = []
+    selected_indices: List[int] = []
+    contributions = [optuna._hypervolume.WFG().compute(np.asarray([v]),reference_point) for v in rank_i_loss_vals]
+    hv_selected = 0.0
+    while len(selected_indices) < subset_size:
+        max_index = int(np.argmax(contributions))
+        contributions[max_index] = -1
+        selected_index = rank_i_indices[max_index]
+        selected_vec = rank_i_loss_vals[max_index]
+        for j, v in enumerate(rank_i_loss_vals):
+            if contributions[j] == -1:
+                continue
+            p = np.max([selected_vec, v], axis=0)
+            contributions[j] -= optuna._hypervolume.WFG().compute(np. asarray(selected_vecs + [p]), reference_point) - hv_selected
+        selected_vecs += [selected_vec]
+        selected_indices += [selected_index]
+        hv_selected = optuna._hypervolume.WFG().compute(np.asarray(selected_vecs), reference_point)
+    return np.asarray(selected_indices, dtype=int)",1,986000.67,6291885543,0.0
+optuna_optuna,optuna,optuna,optuna/_hypervolume/utils.py,Null,_compute_2d,Null,b84f7b6a776f0d4029b8db3d84fa3a1ec86946ad,Merge pull request #5303 from nabenabe0928/enhance/speedup-2d-hv-computationMake 2d HV computation twice faster,Null,optuna,optuna_optuna,pytest -s tests/hypervolume_tests/test_utils.py::test_compute_2d,"def test_compute_2d() ->None:
+    for n in range(2, 30):
+        r = n * np.ones(2)
+        s = np.asarray([[n - 1 - i, i] for i in range(n)])
+        for i in range(n + 1):
+            s = np.vstack((s, np.asarray([i, n - i])))
+        np.random.shuffle(s)
+        v = optuna._hypervolume._compute_2d(s, r)
+        assert v == n * n - n * (n - 1) // 2","def _compute_2d(solution_set: np.ndarray, reference_point: np.ndarray) ->float:","def _compute_2d(solution_set: np.ndarray, reference_point: np.ndarray) ->float:
+    """"""Compute the hypervolume for the two-dimensional space.
+    This algorithm divides a hypervolume into
+    smaller rectangles and sum these areas.
+    Args:
+        solution_set:
+            The solution set which we want to compute the hypervolume.
+        reference_point:
+            The reference point to compute the hypervolume.
+    """"""
+    assert solution_set.shape[1] == 2 and reference_point.shape[0] == 2
+    sorted_solution_set = solution_set[np.lexsort((-solution_set[:, 1],solution_set[:, 0]))]
+    reference_points_y = np.append(reference_point[1], sorted_solution_set[:-1, 1])
+    reference_points_y_cummin = np.minimum.accumulate(reference_points_y)
+    mask = sorted_solution_set[:, 1] <= reference_points_y_cummin
+    used_solution = sorted_solution_set[mask]
+    edge_length_x = reference_point[0] - used_solution[:, 0]
+    edge_length_y = reference_points_y_cummin[mask] - used_solution[:, 1]
+    return edge_length_x @ edge_length_y","def _compute_2d(solution_set: np.ndarray, reference_point: np.ndarray) ->float:
+    """"""Compute the hypervolume for the two-dimensional space.
+    This algorithm divides a hypervolume into
+    smaller rectangles and sum these areas.
+    Args:
+        solution_set:
+            The solution set which we want to compute the hypervolume.
+        reference_point:
+            The reference point to compute the hypervolume.
+    """"""
+    assert solution_set.shape[1] == 2 and reference_point.shape[0] == 2
+    sorted_solution_set = solution_set[np.lexsort((-solution_set[:, 1],solution_set[:, 0]))]
+    reference_points_y = np.append(reference_point[1], sorted_solution_set[:-1, 1])
+    reference_points_y_cummin = np.minimum.accumulate(reference_points_y)
+    mask = sorted_solution_set[:, 1] <= reference_points_y_cummin
+    used_solution = sorted_solution_set[mask]
+    edge_length_x = reference_point[0] - used_solution[:, 0]
+    edge_length_y = reference_points_y_cummin[mask] - used_solution[:, 1]
+    return edge_length_x @ edge_length_y",1,3530.67,23598363,0.691406
